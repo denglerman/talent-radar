@@ -3,7 +3,8 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { CompanyWithSignals, CompanyTier, TIER_LABELS } from '@/types';
-import { Sparklines, SparklinesLine } from './Sparklines';
+import { Sparklines } from './Sparklines';
+import CompanyLogo from './CompanyLogo';
 
 interface Props {
   companies: CompanyWithSignals[];
@@ -11,6 +12,8 @@ interface Props {
   onSelect: (id: string) => void;
   collapsed: boolean;
   onToggle: () => void;
+  onAddCompany: (name: string, domain: string, tier: string) => Promise<boolean>;
+  onDeleteCompany: (companyId: string) => Promise<void>;
 }
 
 function getTierColor(tier: CompanyTier): string {
@@ -37,9 +40,16 @@ function getSparklineData(signals: { detected_at: string }[]): number[] {
   return buckets;
 }
 
-export default function CompanyWatchlist({ companies, selectedId, onSelect, collapsed, onToggle }: Props) {
+export default function CompanyWatchlist({ companies, selectedId, onSelect, collapsed, onToggle, onAddCompany, onDeleteCompany }: Props) {
   const [showAddModal, setShowAddModal] = useState(false);
+  const [hoveredCompanyId, setHoveredCompanyId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const sorted = [...companies].sort((a, b) => b.heat_score - a.heat_score);
+
+  const handleDelete = async (companyId: string) => {
+    setConfirmDeleteId(null);
+    await onDeleteCompany(companyId);
+  };
 
   return (
     <>
@@ -78,6 +88,7 @@ export default function CompanyWatchlist({ companies, selectedId, onSelect, coll
             {sorted.map((company, i) => {
               const sparkData = getSparklineData(company.signals);
               const isSelected = selectedId === company.id;
+              const isHovered = hoveredCompanyId === company.id;
 
               return (
                 <motion.div
@@ -86,35 +97,58 @@ export default function CompanyWatchlist({ companies, selectedId, onSelect, coll
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.1 + i * 0.04 }}
                   onClick={() => onSelect(company.id)}
-                  className={`px-3 py-2.5 cursor-pointer border-b border-[#1e293b]/50 transition-all hover:bg-white/[0.03] ${
+                  onMouseEnter={() => setHoveredCompanyId(company.id)}
+                  onMouseLeave={() => { setHoveredCompanyId(null); setConfirmDeleteId(null); }}
+                  className={`relative px-3 py-2.5 cursor-pointer border-b border-[#1e293b]/50 transition-all hover:bg-white/[0.03] ${
                     isSelected ? 'bg-white/[0.05] border-l-2 border-l-[#00f5ff]' : ''
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
-                      <img
-                        src={`https://logo.clearbit.com/${company.domain}`}
-                        alt=""
-                        className="w-4 h-4 rounded-sm"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
+                      <CompanyLogo
+                        domain={company.domain}
+                        companyName={company.company_name}
+                        size={16}
+                        heatColor={getHeatColor(company.heat_score)}
                       />
                       <span className="text-[12px] text-[#e2e8f0] font-medium truncate max-w-[100px]">
                         {company.company_name}
                       </span>
                     </div>
-                    <span
-                      className="data-mono text-[10px] px-1.5 py-0.5 rounded font-semibold"
-                      style={{
-                        color: getTierColor(company.tier),
-                        backgroundColor: `${getTierColor(company.tier)}15`,
-                        border: `1px solid ${getTierColor(company.tier)}30`,
-                      }}
-                    >
-                      {TIER_LABELS[company.tier]}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {isHovered && confirmDeleteId !== company.id && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(company.id); }}
+                          className="text-[#334155] hover:text-[#ef4444] transition-colors p-0.5"
+                          title="Delete company"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                            <path d="M2.5 3.5h7M4.5 3.5V2.5a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1M9 3.5l-.4 5.6a1 1 0 0 1-1 .9H4.4a1 1 0 0 1-1-.9L3 3.5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </button>
+                      )}
+                      <span
+                        className="data-mono text-[10px] px-1.5 py-0.5 rounded font-semibold"
+                        style={{
+                          color: getTierColor(company.tier),
+                          backgroundColor: `${getTierColor(company.tier)}15`,
+                          border: `1px solid ${getTierColor(company.tier)}30`,
+                        }}
+                      >
+                        {TIER_LABELS[company.tier]}
+                      </span>
+                    </div>
                   </div>
+
+                  {confirmDeleteId === company.id && (
+                    <div className="flex items-center justify-between mt-1 mb-1 py-1 px-2 bg-[#ef4444]/10 border border-[#ef4444]/30 rounded" onClick={(e) => e.stopPropagation()}>
+                      <span className="data-mono text-[9px] text-[#ef4444]">Delete?</span>
+                      <div className="flex gap-1.5">
+                        <button onClick={(e) => { e.stopPropagation(); handleDelete(company.id); }} className="data-mono text-[9px] text-[#ef4444] hover:text-white transition-colors">Yes</button>
+                        <button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }} className="data-mono text-[9px] text-[#64748b] hover:text-white transition-colors">No</button>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
@@ -155,21 +189,29 @@ export default function CompanyWatchlist({ companies, selectedId, onSelect, coll
       {/* Add Company Modal */}
       <AnimatePresence>
         {showAddModal && (
-          <AddCompanyModal onClose={() => setShowAddModal(false)} />
+          <AddCompanyModal
+            onClose={() => setShowAddModal(false)}
+            onAdd={onAddCompany}
+          />
         )}
       </AnimatePresence>
     </>
   );
 }
 
-function AddCompanyModal({ onClose }: { onClose: () => void }) {
+function AddCompanyModal({ onClose, onAdd }: { onClose: () => void; onAdd: (name: string, domain: string, tier: string) => Promise<boolean> }) {
   const [name, setName] = useState('');
+  const [domain, setDomain] = useState('');
   const [tier, setTier] = useState<CompanyTier>('tier_2');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a full implementation, this would call addCompany and refresh
-    onClose();
+    if (!name.trim() || !domain.trim()) return;
+    setSubmitting(true);
+    const success = await onAdd(name.trim(), domain.trim(), tier);
+    setSubmitting(false);
+    if (success) onClose();
   };
 
   return (
@@ -199,7 +241,22 @@ function AddCompanyModal({ onClose }: { onClose: () => void }) {
               onChange={(e) => setName(e.target.value)}
               className="w-full bg-[#0d1117] border border-[#1e293b] rounded-lg px-3 py-2 text-sm text-white focus:border-[#00f5ff]/50 focus:outline-none transition-colors"
               placeholder="e.g. Vercel"
+              required
             />
+          </div>
+          <div className="mb-3">
+            <label className="data-mono text-[10px] text-[#64748b] uppercase tracking-wider block mb-1">
+              Domain
+            </label>
+            <input
+              type="text"
+              value={domain}
+              onChange={(e) => setDomain(e.target.value)}
+              className="w-full bg-[#0d1117] border border-[#1e293b] rounded-lg px-3 py-2 text-sm text-white focus:border-[#00f5ff]/50 focus:outline-none transition-colors"
+              placeholder="e.g. vercel.com"
+              required
+            />
+            <span className="data-mono text-[9px] text-[#334155] mt-1 block">Used for logo and news search</span>
           </div>
           <div className="mb-4">
             <label className="data-mono text-[10px] text-[#64748b] uppercase tracking-wider block mb-1">
@@ -225,9 +282,10 @@ function AddCompanyModal({ onClose }: { onClose: () => void }) {
             </button>
             <button
               type="submit"
-              className="flex-1 data-mono text-[11px] text-[#0a0a0a] bg-[#00f5ff] rounded-lg py-2 font-semibold hover:bg-[#00f5ff]/90 transition-colors"
+              disabled={submitting || !name.trim() || !domain.trim()}
+              className="flex-1 data-mono text-[11px] text-[#0a0a0a] bg-[#00f5ff] rounded-lg py-2 font-semibold hover:bg-[#00f5ff]/90 transition-colors disabled:opacity-50"
             >
-              Add Target
+              {submitting ? 'Adding...' : 'Add Target'}
             </button>
           </div>
         </form>

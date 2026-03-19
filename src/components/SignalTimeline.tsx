@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { Signal, Company, SIGNAL_TYPE_LABELS, SignalType, UrgencyLevel } from '@/types';
+import CompanyLogo from './CompanyLogo';
 
 interface Props {
   signals: Signal[];
@@ -85,13 +86,11 @@ export default function SignalTimeline({ signals, companies }: Props) {
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <div className="flex items-center gap-2">
                     {company && (
-                      <img
-                        src={`https://logo.clearbit.com/${company.domain}`}
-                        alt={company.company_name}
-                        className="w-4 h-4 rounded-sm"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
+                      <CompanyLogo
+                        domain={company.domain}
+                        companyName={company.company_name}
+                        size={16}
+                        heatColor={getUrgencyColor(signal.urgency)}
                       />
                     )}
                     <span className="data-mono text-[11px] text-[#e2e8f0] font-medium">

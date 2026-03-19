@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { CompanyWithSignals, SIGNAL_TYPE_LABELS, SignalType, UrgencyLevel, RecruitingWindow } from '@/types';
+import CompanyLogo from './CompanyLogo';
 
 interface Props {
   company: CompanyWithSignals | null;
@@ -123,13 +124,11 @@ export default function CompanyDetailPanel({ company, onClose }: Props) {
           <div className="p-4 border-b border-[#1e293b]">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <img
-                  src={`https://logo.clearbit.com/${company.domain}`}
-                  alt={company.company_name}
-                  className="w-6 h-6 rounded"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
+                <CompanyLogo
+                  domain={company.domain}
+                  companyName={company.company_name}
+                  size={24}
+                  heatColor={company.heat_score >= 70 ? '#ef4444' : company.heat_score >= 40 ? '#f59e0b' : '#00f5ff'}
                 />
                 <h2 className="text-sm font-semibold text-white">{company.company_name}</h2>
               </div>
