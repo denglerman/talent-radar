@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CompanyWithSignals, SIGNAL_TYPE_LABELS, SignalType, UrgencyLevel, RecruitingWindow } from '@/types';
 import CompanyLogo from './CompanyLogo';
@@ -9,6 +9,7 @@ interface Props {
   company: CompanyWithSignals | null;
   onClose: () => void;
   onDeleteCompany: (companyId: string) => Promise<void>;
+  onEditCompany: (companyId: string, name: string, domain: string) => Promise<void>;
 }
 
 function getUrgencyColor(urgency: UrgencyLevel): string {
@@ -110,14 +111,44 @@ function HeatGauge({ score }: { score: number }) {
   );
 }
 
-export default function CompanyDetailPanel({ company, onClose, onDeleteCompany }: Props) {
+export default function CompanyDetailPanel({ company, onClose, onDeleteCompany, onEditCompany }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editDomain, setEditDomain] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  // Reset state when company changes (fixes confirmDelete leak across selections)
+  useEffect(() => {
+    setConfirmDelete(false);
+    setEditing(false);
+  }, [company?.id]);
 
   const handleDelete = async () => {
     if (!company) return;
     setConfirmDelete(false);
     onClose();
     await onDeleteCompany(company.id);
+  };
+
+  const handleStartEdit = () => {
+    if (!company) return;
+    setEditName(company.company_name);
+    setEditDomain(company.domain);
+    setEditing(true);
+    setConfirmDelete(false);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!company || !editName.trim() || !editDomain.trim()) return;
+    setSaving(true);
+    await onEditCompany(company.id, editName.trim(), editDomain.trim());
+    setSaving(false);
+    setEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setEditing(false);
   };
 
   return (
@@ -143,7 +174,18 @@ export default function CompanyDetailPanel({ company, onClose, onDeleteCompany }
                 />
                 <h2 className="text-sm font-semibold text-white">{company.company_name}</h2>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {/* Edit button */}
+                <button
+                  onClick={handleStartEdit}
+                  className="text-[#334155] hover:text-[#00f5ff] transition-colors p-1"
+                  title="Edit company"
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M10 2l2 2-7 7H3v-2l7-7z" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+                {/* Delete button */}
                 <button
                   onClick={() => setConfirmDelete(true)}
                   className="text-[#334155] hover:text-[#ef4444] transition-colors p-1"
@@ -153,9 +195,10 @@ export default function CompanyDetailPanel({ company, onClose, onDeleteCompany }
                     <path d="M3 4h8M5 4V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1M10.5 4l-.5 7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1L3.5 4" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </button>
+                {/* Close button */}
                 <button
                   onClick={onClose}
-                  className="text-[#475569] hover:text-white transition-colors"
+                  className="text-[#475569] hover:text-white transition-colors p-1"
                 >
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                     <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -163,6 +206,54 @@ export default function CompanyDetailPanel({ company, onClose, onDeleteCompany }
                 </button>
               </div>
             </div>
+
+            {/* Edit form */}
+            <AnimatePresence>
+              {editing && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-3 py-2.5 px-3 bg-[#00f5ff]/5 border border-[#00f5ff]/20 rounded-lg"
+                >
+                  <div className="space-y-2">
+                    <div>
+                      <label className="data-mono text-[9px] text-[#475569] uppercase tracking-wider">Name</label>
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="w-full mt-0.5 px-2 py-1.5 bg-[#0d1117] border border-[#1e293b] rounded text-[11px] text-white focus:border-[#00f5ff]/50 focus:outline-none transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="data-mono text-[9px] text-[#475569] uppercase tracking-wider">Domain</label>
+                      <input
+                        type="text"
+                        value={editDomain}
+                        onChange={(e) => setEditDomain(e.target.value)}
+                        className="w-full mt-0.5 px-2 py-1.5 bg-[#0d1117] border border-[#1e293b] rounded text-[11px] text-white focus:border-[#00f5ff]/50 focus:outline-none transition-colors"
+                      />
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        onClick={handleSaveEdit}
+                        disabled={saving || !editName.trim() || !editDomain.trim()}
+                        className="data-mono text-[10px] text-[#00f5ff] hover:text-white transition-colors font-semibold disabled:opacity-50"
+                      >
+                        {saving ? 'Saving...' : 'Save'}
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        className="data-mono text-[10px] text-[#64748b] hover:text-white transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Delete confirmation */}
             <AnimatePresence>

@@ -109,6 +109,25 @@ export default function Dashboard({ companiesWithSignals: initialData, initialLa
     }
   }, [refreshData, showToast]);
 
+  const handleEditCompany = useCallback(async (companyId: string, name: string, domain: string) => {
+    try {
+      const res = await fetch('/api/companies', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: companyId, company_name: name, domain }),
+      });
+      if (res.ok) {
+        showToast('Company updated', 'success');
+        await refreshData();
+      } else {
+        const err = await res.json();
+        showToast(err.error || 'Failed to update company', 'error');
+      }
+    } catch {
+      showToast('Network error \u2014 could not update', 'error');
+    }
+  }, [refreshData, showToast]);
+
   const handleDeleteCompany = useCallback(async (companyId: string) => {
     try {
       const res = await fetch(`/api/companies?id=${companyId}`, { method: 'DELETE' });
@@ -241,6 +260,7 @@ export default function Dashboard({ companiesWithSignals: initialData, initialLa
         company={selectedCompany}
         onClose={() => setSelectedId(null)}
         onDeleteCompany={handleDeleteCompany}
+        onEditCompany={handleEditCompany}
       />
 
       {/* Toast notifications */}
