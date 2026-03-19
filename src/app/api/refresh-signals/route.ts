@@ -116,6 +116,7 @@ export async function POST(request: Request) {
 
   let totalNewSignals = 0;
   let totalDiscarded = 0;
+  let totalPurged = 0;
   const errors: string[] = [];
 
   for (const company of companies) {
@@ -147,6 +148,18 @@ export async function POST(request: Request) {
       const newsData = await newsRes.json();
       const articles: NewsArticle[] = newsData.articles || [];
 
+      // Collect valid new signals before modifying the database
+      interface NewSignal {
+        company_id: string;
+        signal_type: SignalType;
+        headline: string;
+        source_url: string | null;
+        why_it_matters: string;
+        urgency: UrgencyLevel;
+        detected_at: string;
+      }
+      const newSignals: NewSignal[] = [];
+
       for (const article of articles) {
         if (!article.title || article.title === '[Removed]') continue;
 
@@ -162,21 +175,11 @@ export async function POST(request: Request) {
           continue;
         }
 
-        // Check for duplicate headline
-        const { data: existing } = await supabase
-          .from('signals')
-          .select('id')
-          .eq('company_id', company.id)
-          .eq('headline', article.title)
-          .limit(1);
-
-        if (existing && existing.length > 0) continue;
-
         const signalType = classifySignalType(article.title);
         const urgency = getUrgency(signalType);
         const whyItMatters = getWhyItMatters(signalType, company.company_name);
 
-        const { error: insertError } = await supabase.from('signals').insert({
+        newSignals.push({
           company_id: company.id,
           signal_type: signalType,
           headline: article.title,
@@ -185,9 +188,28 @@ export async function POST(request: Request) {
           urgency,
           detected_at: article.publishedAt || new Date().toISOString(),
         });
+      }
 
-        if (!insertError) {
-          totalNewSignals++;
+      // Only purge and replace if we actually have new signals to insert
+      if (newSignals.length > 0) {
+        const { data: deleted, error: deleteError } = await supabase
+          .from('signals')
+          .delete()
+          .eq('company_id', company.id)
+          .select('id');
+        if (deleteError) {
+          errors.push(`Failed to purge signals for ${company.company_name}: ${deleteError.message}`);
+          continue;
+        }
+        totalPurged += deleted?.length ?? 0;
+
+        for (const signal of newSignals) {
+          const { error: insertError } = await supabase.from('signals').insert(signal);
+          if (!insertError) {
+            totalNewSignals++;
+          } else {
+            errors.push(`Failed to insert signal for ${company.company_name}: ${insertError.message}`);
+          }
         }
       }
 
@@ -219,6 +241,7 @@ export async function POST(request: Request) {
   return NextResponse.json({
     companies_checked: companies.length,
     new_signals_added: totalNewSignals,
+    old_signals_purged: totalPurged,
     articles_discarded: totalDiscarded,
     errors: errors.length > 0 ? errors : undefined,
   });

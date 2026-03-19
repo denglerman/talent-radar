@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CompanyWithSignals, SIGNAL_TYPE_LABELS, SignalType, UrgencyLevel, RecruitingWindow } from '@/types';
 import CompanyLogo from './CompanyLogo';
@@ -7,6 +8,8 @@ import CompanyLogo from './CompanyLogo';
 interface Props {
   company: CompanyWithSignals | null;
   onClose: () => void;
+  onDeleteCompany: (companyId: string) => Promise<void>;
+  onEditCompany: (companyId: string, name: string, domain: string) => Promise<void>;
 }
 
 function getUrgencyColor(urgency: UrgencyLevel): string {
@@ -108,7 +111,54 @@ function HeatGauge({ score }: { score: number }) {
   );
 }
 
-export default function CompanyDetailPanel({ company, onClose }: Props) {
+export default function CompanyDetailPanel({ company, onClose, onDeleteCompany, onEditCompany }: Props) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editDomain, setEditDomain] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const savingForRef = useRef<string | null>(null);
+
+  // Reset state when company changes (fixes confirmDelete leak across selections)
+  useEffect(() => {
+    setConfirmDelete(false);
+    setEditing(false);
+    setSaving(false);
+    savingForRef.current = null;
+  }, [company?.id]);
+
+  const handleDelete = async () => {
+    if (!company) return;
+    setConfirmDelete(false);
+    onClose();
+    await onDeleteCompany(company.id);
+  };
+
+  const handleStartEdit = () => {
+    if (!company) return;
+    setEditName(company.company_name);
+    setEditDomain(company.domain);
+    setEditing(true);
+    setConfirmDelete(false);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!company || !editName.trim() || !editDomain.trim()) return;
+    const targetId = company.id;
+    savingForRef.current = targetId;
+    setSaving(true);
+    await onEditCompany(company.id, editName.trim(), editDomain.trim());
+    if (savingForRef.current === targetId) {
+      setSaving(false);
+      setEditing(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditing(false);
+  };
+
   return (
     <AnimatePresence>
       {company && (
@@ -132,15 +182,114 @@ export default function CompanyDetailPanel({ company, onClose }: Props) {
                 />
                 <h2 className="text-sm font-semibold text-white">{company.company_name}</h2>
               </div>
-              <button
-                onClick={onClose}
-                className="text-[#475569] hover:text-white transition-colors"
-              >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {/* Edit button */}
+                <button
+                  onClick={handleStartEdit}
+                  className="text-[#334155] hover:text-[#00f5ff] transition-colors p-1"
+                  title="Edit company"
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M10 2l2 2-7 7H3v-2l7-7z" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+                {/* Delete button */}
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  className="text-[#334155] hover:text-[#ef4444] transition-colors p-1"
+                  title="Delete company"
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M3 4h8M5 4V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1M10.5 4l-.5 7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1L3.5 4" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+                {/* Close button */}
+                <button
+                  onClick={onClose}
+                  className="text-[#475569] hover:text-white transition-colors p-1"
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </div>
             </div>
+
+            {/* Edit form */}
+            <AnimatePresence>
+              {editing && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-3 py-2.5 px-3 bg-[#00f5ff]/5 border border-[#00f5ff]/20 rounded-lg"
+                >
+                  <div className="space-y-2">
+                    <div>
+                      <label className="data-mono text-[9px] text-[#475569] uppercase tracking-wider">Name</label>
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="w-full mt-0.5 px-2 py-1.5 bg-[#0d1117] border border-[#1e293b] rounded text-[11px] text-white focus:border-[#00f5ff]/50 focus:outline-none transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="data-mono text-[9px] text-[#475569] uppercase tracking-wider">Domain</label>
+                      <input
+                        type="text"
+                        value={editDomain}
+                        onChange={(e) => setEditDomain(e.target.value)}
+                        className="w-full mt-0.5 px-2 py-1.5 bg-[#0d1117] border border-[#1e293b] rounded text-[11px] text-white focus:border-[#00f5ff]/50 focus:outline-none transition-colors"
+                      />
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        onClick={handleSaveEdit}
+                        disabled={saving || !editName.trim() || !editDomain.trim()}
+                        className="data-mono text-[10px] text-[#00f5ff] hover:text-white transition-colors font-semibold disabled:opacity-50"
+                      >
+                        {saving ? 'Saving...' : 'Save'}
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        className="data-mono text-[10px] text-[#64748b] hover:text-white transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Delete confirmation */}
+            <AnimatePresence>
+              {confirmDelete && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-3 py-2 px-3 bg-[#ef4444]/10 border border-[#ef4444]/30 rounded-lg flex items-center justify-between"
+                >
+                  <span className="data-mono text-[10px] text-[#ef4444]">Delete this company?</span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleDelete}
+                      className="data-mono text-[10px] text-[#ef4444] hover:text-white transition-colors font-semibold"
+                    >
+                      Yes, delete
+                    </button>
+                    <button
+                      onClick={() => setConfirmDelete(false)}
+                      className="data-mono text-[10px] text-[#64748b] hover:text-white transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Heat gauge + window */}
             <div className="flex items-center justify-between">
@@ -177,12 +326,16 @@ export default function CompanyDetailPanel({ company, onClose }: Props) {
                   const urgColor = getUrgencyColor(signal.urgency);
 
                   return (
-                    <motion.div
+                    <motion.a
                       key={signal.id}
+                      href={signal.source_url || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e: React.MouseEvent) => { if (!signal.source_url) e.preventDefault(); }}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.1 + i * 0.05 }}
-                      className="bg-[#111827]/60 border border-[#1e293b] rounded-lg p-3"
+                      className={`block bg-[#111827]/60 border border-[#1e293b] rounded-lg p-3 hover:border-[#334155] transition-colors ${signal.source_url ? 'cursor-pointer' : 'cursor-default'}`}
                     >
                       <div className="flex items-center justify-between mb-1.5">
                         <span
@@ -220,7 +373,7 @@ export default function CompanyDetailPanel({ company, onClose }: Props) {
                           year: 'numeric',
                         })}
                       </div>
-                    </motion.div>
+                    </motion.a>
                   );
                 })}
             </div>

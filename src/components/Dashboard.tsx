@@ -57,8 +57,11 @@ export default function Dashboard({ companiesWithSignals: initialData, initialLa
       const res = await fetch('/api/refresh-signals', { method: 'POST' });
       if (res.ok) {
         const result = await res.json();
-        if (result.new_signals_added > 0) {
-          showToast(`${result.new_signals_added} new signal${result.new_signals_added === 1 ? '' : 's'} detected`, 'success');
+        const parts: string[] = [];
+        if (result.old_signals_purged > 0) parts.push(`${result.old_signals_purged} old removed`);
+        if (result.new_signals_added > 0) parts.push(`${result.new_signals_added} new detected`);
+        if (parts.length > 0) {
+          showToast(`Signals refreshed — ${parts.join(', ')}`, 'success');
         } else {
           showToast('No new signals found', 'info');
         }
@@ -103,6 +106,25 @@ export default function Dashboard({ companiesWithSignals: initialData, initialLa
     } catch {
       showToast('Network error \u2014 could not add company', 'error');
       return false;
+    }
+  }, [refreshData, showToast]);
+
+  const handleEditCompany = useCallback(async (companyId: string, name: string, domain: string) => {
+    try {
+      const res = await fetch('/api/companies', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: companyId, company_name: name, domain }),
+      });
+      if (res.ok) {
+        showToast('Company updated', 'success');
+        await refreshData();
+      } else {
+        const err = await res.json();
+        showToast(err.error || 'Failed to update company', 'error');
+      }
+    } catch {
+      showToast('Network error \u2014 could not update', 'error');
     }
   }, [refreshData, showToast]);
 
@@ -237,6 +259,8 @@ export default function Dashboard({ companiesWithSignals: initialData, initialLa
       <CompanyDetailPanel
         company={selectedCompany}
         onClose={() => setSelectedId(null)}
+        onDeleteCompany={handleDeleteCompany}
+        onEditCompany={handleEditCompany}
       />
 
       {/* Toast notifications */}

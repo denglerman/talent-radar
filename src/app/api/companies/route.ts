@@ -40,6 +40,41 @@ export async function POST(request: Request) {
   return NextResponse.json(data);
 }
 
+export async function PATCH(request: Request) {
+  if (!supabaseUrl || !supabaseKey) {
+    return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 });
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  const body = await request.json();
+  const { id, company_name, domain } = body;
+
+  if (!id) {
+    return NextResponse.json({ error: 'Missing company id' }, { status: 400 });
+  }
+
+  const updates: Record<string, string> = {};
+  if (company_name) updates.company_name = company_name;
+  if (domain) updates.domain = domain;
+
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+  }
+
+  const { data, error } = await supabase
+    .from('target_companies')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json(data);
+}
+
 export async function DELETE(request: Request) {
   if (!supabaseUrl || !supabaseKey) {
     return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 });

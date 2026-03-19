@@ -82,7 +82,13 @@ export default function SignalTimeline({ signals, companies }: Props) {
                 }}
               />
 
-              <div className="bg-[#0d1117]/80 border border-[#1e293b] rounded-lg p-3 hover:border-[#334155] transition-colors">
+              <a
+                href={signal.source_url || '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`block bg-[#0d1117]/80 border border-[#1e293b] rounded-lg p-3 hover:border-[#334155] transition-colors ${signal.source_url ? 'cursor-pointer' : 'cursor-default'}`}
+                onClick={(e) => { if (!signal.source_url) e.preventDefault(); }}
+              >
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <div className="flex items-center gap-2">
                     {company && (
@@ -122,7 +128,7 @@ export default function SignalTimeline({ signals, companies }: Props) {
                 <p className="text-[11px] text-[#94a3b8] leading-relaxed line-clamp-2">
                   {signal.headline}
                 </p>
-              </div>
+              </a>
             </motion.div>
           );
         })}
