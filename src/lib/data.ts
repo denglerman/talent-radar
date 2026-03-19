@@ -3,6 +3,7 @@ import { Company, Signal, CompanyWithSignals } from '@/types';
 import { SEED_COMPANIES, SEED_SIGNALS } from './seed-data';
 
 export async function getCompanies(): Promise<Company[]> {
+  if (!supabase) return [...SEED_COMPANIES].sort((a, b) => b.heat_score - a.heat_score);
   try {
     const { data, error } = await supabase
       .from('target_companies')
@@ -19,6 +20,7 @@ export async function getCompanies(): Promise<Company[]> {
 }
 
 export async function getSignals(): Promise<Signal[]> {
+  if (!supabase) return [...SEED_SIGNALS].sort((a, b) => new Date(b.detected_at).getTime() - new Date(a.detected_at).getTime());
   try {
     const { data, error } = await supabase
       .from('signals')
@@ -44,6 +46,7 @@ export async function getCompaniesWithSignals(): Promise<CompanyWithSignals[]> {
 }
 
 export async function addCompany(name: string, tier: Company['tier']): Promise<Company | null> {
+  if (!supabase) return null;
   const domain = name.toLowerCase().replace(/\s+/g, '') + '.com';
   const angle = Math.floor(Math.random() * 360);
 
