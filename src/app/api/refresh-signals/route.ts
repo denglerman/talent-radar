@@ -10,9 +10,19 @@ type UrgencyLevel = 'high' | 'medium' | 'low';
 
 interface NewsArticle {
   title: string;
+  description: string | null;
   url: string;
   publishedAt: string;
 }
+
+// Keywords that indicate an article is relevant to talent intelligence
+const RELEVANCE_KEYWORDS = [
+  'engineer', 'engineering', 'team', 'hire', 'hiring', 'talent',
+  'layoff', 'cut', 'jobs', 'staff', 'employees',
+  'acquisition', 'acquires', 'acquired', 'merger',
+  'ceo', 'cto', 'vp', 'raises', 'funding', 'series',
+  'reorg', 'restructur', 'leadership',
+];
 
 function classifySignalType(headline: string): SignalType {
   const lower = headline.toLowerCase();
@@ -65,6 +75,15 @@ function getRecruitingWindow(heatScore: number): 'open' | 'uncertain' | 'closed'
   return 'closed';
 }
 
+function headlineContainsCompanyName(headline: string, companyName: string): boolean {
+  return headline.toLowerCase().includes(companyName.toLowerCase());
+}
+
+function isRelevantToTalentIntelligence(headline: string, description: string | null): boolean {
+  const text = `${headline} ${description || ''}`.toLowerCase();
+  return RELEVANCE_KEYWORDS.some((keyword) => text.includes(keyword));
+}
+
 export async function POST(request: Request) {
   if (!supabaseUrl || !supabaseKey) {
     return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 });
@@ -96,13 +115,19 @@ export async function POST(request: Request) {
   }
 
   let totalNewSignals = 0;
+  let totalDiscarded = 0;
   const errors: string[] = [];
 
   for (const company of companies) {
     try {
-      const query = `"${company.company_name}" AND (layoff OR acquisition OR restructuring OR "leadership change" OR funding OR reorg)`;
+      // Build search query — append search_modifier for generic company names
+      const searchName = company.search_modifier
+        ? `${company.company_name} ${company.search_modifier}`
+        : company.company_name;
+      const query = `"${searchName}" AND (layoff OR acquisition OR restructuring OR "leadership change" OR funding OR reorg)`;
       const params = new URLSearchParams({
         q: query,
+        searchIn: 'title',
         sortBy: 'publishedAt',
         pageSize: '5',
         language: 'en',
@@ -120,6 +145,18 @@ export async function POST(request: Request) {
 
       for (const article of articles) {
         if (!article.title || article.title === '[Removed]') continue;
+
+        // Filter 1: headline must contain the company name
+        if (!headlineContainsCompanyName(article.title, company.company_name)) {
+          totalDiscarded++;
+          continue;
+        }
+
+        // Filter 2: article must contain at least one talent-relevant keyword
+        if (!isRelevantToTalentIntelligence(article.title, article.description)) {
+          totalDiscarded++;
+          continue;
+        }
 
         // Check for duplicate headline
         const { data: existing } = await supabase
@@ -178,6 +215,7 @@ export async function POST(request: Request) {
   return NextResponse.json({
     companies_checked: companies.length,
     new_signals_added: totalNewSignals,
+    articles_discarded: totalDiscarded,
     errors: errors.length > 0 ? errors : undefined,
   });
 }
