@@ -12,6 +12,7 @@ export interface Company {
   recruiting_window: RecruitingWindow;
   radar_angle: number;
   notes: string | null;
+  search_modifier: string | null;
   created_at?: string;
 }
 
