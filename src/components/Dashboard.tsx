@@ -57,8 +57,11 @@ export default function Dashboard({ companiesWithSignals: initialData, initialLa
       const res = await fetch('/api/refresh-signals', { method: 'POST' });
       if (res.ok) {
         const result = await res.json();
-        if (result.new_signals_added > 0) {
-          showToast(`${result.new_signals_added} new signal${result.new_signals_added === 1 ? '' : 's'} detected`, 'success');
+        const parts: string[] = [];
+        if (result.old_signals_purged > 0) parts.push(`${result.old_signals_purged} old removed`);
+        if (result.new_signals_added > 0) parts.push(`${result.new_signals_added} new detected`);
+        if (parts.length > 0) {
+          showToast(`Signals refreshed — ${parts.join(', ')}`, 'success');
         } else {
           showToast('No new signals found', 'info');
         }
