@@ -40,8 +40,8 @@ async function getData(): Promise<CompanyWithSignals[]> {
     // Fall through to seed data
   }
 
-  const companies = SEED_COMPANIES.sort((a, b) => b.heat_score - a.heat_score);
-  const signals = SEED_SIGNALS.sort(
+  const companies = [...SEED_COMPANIES].sort((a, b) => b.heat_score - a.heat_score);
+  const signals = [...SEED_SIGNALS].sort(
     (a, b) => new Date(b.detected_at).getTime() - new Date(a.detected_at).getTime()
   );
 

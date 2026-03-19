@@ -10,11 +10,11 @@ export async function getCompanies(): Promise<Company[]> {
       .order('heat_score', { ascending: false });
 
     if (error || !data || data.length === 0) {
-      return SEED_COMPANIES.sort((a, b) => b.heat_score - a.heat_score);
+      return [...SEED_COMPANIES].sort((a, b) => b.heat_score - a.heat_score);
     }
     return data;
   } catch {
-    return SEED_COMPANIES.sort((a, b) => b.heat_score - a.heat_score);
+    return [...SEED_COMPANIES].sort((a, b) => b.heat_score - a.heat_score);
   }
 }
 
@@ -26,11 +26,11 @@ export async function getSignals(): Promise<Signal[]> {
       .order('detected_at', { ascending: false });
 
     if (error || !data || data.length === 0) {
-      return SEED_SIGNALS.sort((a, b) => new Date(b.detected_at).getTime() - new Date(a.detected_at).getTime());
+      return [...SEED_SIGNALS].sort((a, b) => new Date(b.detected_at).getTime() - new Date(a.detected_at).getTime());
     }
     return data;
   } catch {
-    return SEED_SIGNALS.sort((a, b) => new Date(b.detected_at).getTime() - new Date(a.detected_at).getTime());
+    return [...SEED_SIGNALS].sort((a, b) => new Date(b.detected_at).getTime() - new Date(a.detected_at).getTime());
   }
 }
 

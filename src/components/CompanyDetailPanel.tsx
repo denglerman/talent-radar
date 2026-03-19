@@ -50,9 +50,9 @@ function HeatGauge({ score }: { score: number }) {
   const endAngle = startAngle - (angle * Math.PI) / 180;
 
   const x1 = cx + r * Math.cos(startAngle);
-  const y1 = cy + r * Math.sin(startAngle);
+  const y1 = cy - r * Math.sin(startAngle);
   const x2 = cx + r * Math.cos(endAngle);
-  const y2 = cy + r * Math.sin(endAngle);
+  const y2 = cy - r * Math.sin(endAngle);
 
   const largeArc = angle > 180 ? 1 : 0;
 
@@ -171,7 +171,7 @@ export default function CompanyDetailPanel({ company, onClose }: Props) {
             </h3>
 
             <div className="space-y-3">
-              {company.signals
+              {[...company.signals]
                 .sort((a, b) => new Date(b.detected_at).getTime() - new Date(a.detected_at).getTime())
                 .map((signal, i) => {
                   const badgeColor = getSignalBadgeColor(signal.signal_type);
