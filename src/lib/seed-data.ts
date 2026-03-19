@@ -1,0 +1,47 @@
+import { Company, Signal } from '@/types';
+
+function uuid(n: number): string {
+  return `00000000-0000-0000-0000-${String(n).padStart(12, '0')}`;
+}
+
+function daysAgo(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d.toISOString();
+}
+
+export const SEED_COMPANIES: Company[] = [
+  { id: uuid(1), company_name: 'Google DeepMind', domain: 'deepmind.com', tier: 'tier_1', heat_score: 87, recruiting_window: 'open', radar_angle: 0, notes: null },
+  { id: uuid(2), company_name: 'Anthropic', domain: 'anthropic.com', tier: 'tier_1', heat_score: 45, recruiting_window: 'uncertain', radar_angle: 36, notes: null },
+  { id: uuid(3), company_name: 'OpenAI', domain: 'openai.com', tier: 'tier_1', heat_score: 92, recruiting_window: 'open', radar_angle: 72, notes: null },
+  { id: uuid(4), company_name: 'Cursor', domain: 'cursor.sh', tier: 'tier_1', heat_score: 30, recruiting_window: 'closed', radar_angle: 108, notes: null },
+  { id: uuid(5), company_name: 'Notion', domain: 'notion.so', tier: 'tier_2', heat_score: 68, recruiting_window: 'open', radar_angle: 144, notes: null },
+  { id: uuid(6), company_name: 'Linear', domain: 'linear.app', tier: 'tier_2', heat_score: 22, recruiting_window: 'closed', radar_angle: 180, notes: null },
+  { id: uuid(7), company_name: 'Stripe', domain: 'stripe.com', tier: 'tier_2', heat_score: 55, recruiting_window: 'uncertain', radar_angle: 216, notes: null },
+  { id: uuid(8), company_name: 'Scale AI', domain: 'scale.com', tier: 'tier_2', heat_score: 78, recruiting_window: 'open', radar_angle: 252, notes: null },
+  { id: uuid(9), company_name: 'Cohere', domain: 'cohere.com', tier: 'tier_3', heat_score: 61, recruiting_window: 'open', radar_angle: 288, notes: null },
+  { id: uuid(10), company_name: 'Mistral', domain: 'mistral.ai', tier: 'tier_3', heat_score: 40, recruiting_window: 'uncertain', radar_angle: 324, notes: null },
+];
+
+export const SEED_SIGNALS: Signal[] = [
+  { id: uuid(101), company_id: uuid(3), signal_type: 'leadership_change', headline: 'CTO Mira Murati departs OpenAI amid organizational restructuring', source_url: null, why_it_matters: 'Senior leadership departures often trigger a wave of follow-on exits from loyal team members. Engineers who joined under Murati may now be reconsidering their positions.', urgency: 'high', detected_at: daysAgo(2) },
+  { id: uuid(102), company_id: uuid(3), signal_type: 'reorg', headline: 'OpenAI transitions from nonprofit to for-profit capped structure', source_url: null, why_it_matters: 'Major structural changes create uncertainty. Engineers who joined for the mission-driven nonprofit ethos may feel misaligned with the new direction.', urgency: 'high', detected_at: daysAgo(5) },
+  { id: uuid(103), company_id: uuid(3), signal_type: 'culture', headline: 'Glassdoor reviews flag increasing burnout and 80-hour work weeks', source_url: null, why_it_matters: 'Sustained burnout culture is a leading indicator of attrition. Engineers at breaking point are most receptive to outreach.', urgency: 'medium', detected_at: daysAgo(12) },
+  { id: uuid(104), company_id: uuid(1), signal_type: 'layoff', headline: 'Google announces 12,000 role reductions across Alphabet divisions', source_url: null, why_it_matters: 'Even if DeepMind is partially shielded, layoff anxiety spreads. Top performers often leave preemptively rather than wait for the next round.', urgency: 'high', detected_at: daysAgo(3) },
+  { id: uuid(105), company_id: uuid(1), signal_type: 'reorg', headline: 'DeepMind and Google Brain merger creates internal team redundancies', source_url: null, why_it_matters: 'Merged teams mean duplicated roles and political jockeying. Engineers who lose scope or reporting lines become immediate targets for recruitment.', urgency: 'high', detected_at: daysAgo(8) },
+  { id: uuid(106), company_id: uuid(1), signal_type: 'funding_round', headline: 'Alphabet shifts AI budget allocation, freezing some DeepMind research lines', source_url: null, why_it_matters: 'Budget freezes signal deprioritization. Researchers whose projects lose funding are highly receptive to well-funded alternatives.', urgency: 'medium', detected_at: daysAgo(15) },
+  { id: uuid(107), company_id: uuid(8), signal_type: 'layoff', headline: 'Scale AI reduces workforce by 20% citing market conditions', source_url: null, why_it_matters: 'Significant layoffs create survivor guilt and job insecurity. Remaining engineers often start passively looking within 30 days.', urgency: 'high', detected_at: daysAgo(1) },
+  { id: uuid(108), company_id: uuid(8), signal_type: 'leadership_change', headline: 'VP of Engineering exits Scale AI for stealth startup', source_url: null, why_it_matters: 'When engineering leaders leave, their direct reports lose their champion. This is the optimal window for targeted outreach to their former team.', urgency: 'high', detected_at: daysAgo(4) },
+  { id: uuid(109), company_id: uuid(5), signal_type: 'acquisition', headline: 'Notion acquires Skiff, raising integration concerns among staff', source_url: null, why_it_matters: 'Acquisitions create role uncertainty and cultural friction. Engineers from both sides may be looking for more stable environments.', urgency: 'medium', detected_at: daysAgo(7) },
+  { id: uuid(110), company_id: uuid(5), signal_type: 'culture', headline: 'Notion engineers report frustration with slowing product velocity', source_url: null, why_it_matters: 'Engineers who feel the product is stagnating become disengaged. They seek environments where they can ship faster and have more impact.', urgency: 'medium', detected_at: daysAgo(20) },
+  { id: uuid(111), company_id: uuid(7), signal_type: 'layoff', headline: 'Stripe cuts 14% of workforce in second round of layoffs', source_url: null, why_it_matters: 'Repeated layoffs erode trust in leadership. Even top performers begin hedging their bets after multiple reduction events.', urgency: 'high', detected_at: daysAgo(6) },
+  { id: uuid(112), company_id: uuid(7), signal_type: 'funding_round', headline: 'Stripe secondary sale values company at $50B, down from $95B peak', source_url: null, why_it_matters: 'A declining valuation impacts equity compensation. Engineers whose options are underwater are significantly more open to new offers.', urgency: 'medium', detected_at: daysAgo(14) },
+  { id: uuid(113), company_id: uuid(2), signal_type: 'funding_round', headline: 'Anthropic closes $2B Series D led by Google', source_url: null, why_it_matters: 'Fresh funding typically stabilizes a company, but mega-rounds can signal pressure to scale fast, which some engineers resist.', urgency: 'low', detected_at: daysAgo(10) },
+  { id: uuid(114), company_id: uuid(2), signal_type: 'culture', headline: 'Reports of increasing pressure to ship Claude updates on aggressive timelines', source_url: null, why_it_matters: 'Accelerated shipping pressure leads to technical debt and burnout. Engineers who value craft over speed may be open to calmer environments.', urgency: 'medium', detected_at: daysAgo(18) },
+  { id: uuid(115), company_id: uuid(9), signal_type: 'reorg', headline: 'Cohere restructures go-to-market team, pivoting from API to enterprise', source_url: null, why_it_matters: 'Strategic pivots create uncertainty across the org. Engineers who joined for one vision may not align with the new enterprise focus.', urgency: 'medium', detected_at: daysAgo(9) },
+  { id: uuid(116), company_id: uuid(9), signal_type: 'leadership_change', headline: 'Cohere CTO steps back to advisory role', source_url: null, why_it_matters: 'CTO transitions signal technical direction changes. Engineers closely aligned with the departing leader become recruitment targets.', urgency: 'medium', detected_at: daysAgo(11) },
+  { id: uuid(117), company_id: uuid(4), signal_type: 'funding_round', headline: 'Cursor raises $400M Series B at $2.5B valuation', source_url: null, why_it_matters: 'High valuation with fresh funding makes Cursor engineers harder to recruit. Window is currently closed unless equity or mission differentiation is compelling.', urgency: 'low', detected_at: daysAgo(25) },
+  { id: uuid(118), company_id: uuid(6), signal_type: 'culture', headline: 'Linear maintains lean team philosophy, rejecting hypergrowth pressure', source_url: null, why_it_matters: 'Stable culture and intentional growth make Linear engineers content. Low priority target unless individual circumstances change.', urgency: 'low', detected_at: daysAgo(30) },
+  { id: uuid(119), company_id: uuid(10), signal_type: 'funding_round', headline: 'Mistral raises \u20AC600M but faces growing competition from US labs', source_url: null, why_it_matters: 'Competitive pressure and geographic challenges may cause some engineers to consider US-based opportunities with larger compute budgets.', urgency: 'medium', detected_at: daysAgo(13) },
+  { id: uuid(120), company_id: uuid(10), signal_type: 'reorg', headline: 'Mistral reorganizes research teams after rapid hiring spree', source_url: null, why_it_matters: 'Post-hiring-spree reorgs are normal growing pains. Monitor but low urgency unless key individuals signal dissatisfaction.', urgency: 'low', detected_at: daysAgo(22) },
+];
