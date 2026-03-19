@@ -91,7 +91,7 @@ export default function Dashboard({ companiesWithSignals: initialData, initialLa
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ company_id: newCompany.id }),
-        }).then(() => refreshData());
+        }).then(() => refreshData()).catch(() => {});
 
         await refreshData();
         return true;
@@ -111,7 +111,7 @@ export default function Dashboard({ companiesWithSignals: initialData, initialLa
       const res = await fetch(`/api/companies?id=${companyId}`, { method: 'DELETE' });
       if (res.ok) {
         showToast('Company removed', 'info');
-        if (selectedId === companyId) setSelectedId(null);
+        setSelectedId(prev => prev === companyId ? null : prev);
         await refreshData();
       } else {
         showToast('Failed to delete company', 'error');
@@ -119,7 +119,7 @@ export default function Dashboard({ companiesWithSignals: initialData, initialLa
     } catch {
       showToast('Network error \u2014 could not delete', 'error');
     }
-  }, [refreshData, showToast, selectedId]);
+  }, [refreshData, showToast]);
 
   const selectedCompany = selectedId
     ? companies.find((c) => c.id === selectedId) || null
