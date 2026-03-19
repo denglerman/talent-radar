@@ -11,16 +11,16 @@ function daysAgo(days: number): string {
 }
 
 export const SEED_COMPANIES: Company[] = [
-  { id: uuid(1), company_name: 'Google DeepMind', domain: 'deepmind.com', tier: 'tier_1', heat_score: 87, recruiting_window: 'open', radar_angle: 0, notes: null },
-  { id: uuid(2), company_name: 'Anthropic', domain: 'anthropic.com', tier: 'tier_1', heat_score: 45, recruiting_window: 'uncertain', radar_angle: 36, notes: null },
-  { id: uuid(3), company_name: 'OpenAI', domain: 'openai.com', tier: 'tier_1', heat_score: 92, recruiting_window: 'open', radar_angle: 72, notes: null },
-  { id: uuid(4), company_name: 'Cursor', domain: 'cursor.sh', tier: 'tier_1', heat_score: 30, recruiting_window: 'closed', radar_angle: 108, notes: null },
-  { id: uuid(5), company_name: 'Notion', domain: 'notion.so', tier: 'tier_2', heat_score: 68, recruiting_window: 'open', radar_angle: 144, notes: null },
-  { id: uuid(6), company_name: 'Linear', domain: 'linear.app', tier: 'tier_2', heat_score: 22, recruiting_window: 'closed', radar_angle: 180, notes: null },
-  { id: uuid(7), company_name: 'Stripe', domain: 'stripe.com', tier: 'tier_2', heat_score: 55, recruiting_window: 'uncertain', radar_angle: 216, notes: null },
-  { id: uuid(8), company_name: 'Scale AI', domain: 'scale.com', tier: 'tier_2', heat_score: 78, recruiting_window: 'open', radar_angle: 252, notes: null },
-  { id: uuid(9), company_name: 'Cohere', domain: 'cohere.com', tier: 'tier_3', heat_score: 61, recruiting_window: 'open', radar_angle: 288, notes: null },
-  { id: uuid(10), company_name: 'Mistral', domain: 'mistral.ai', tier: 'tier_3', heat_score: 40, recruiting_window: 'uncertain', radar_angle: 324, notes: null },
+  { id: uuid(1), company_name: 'Google DeepMind', domain: 'deepmind.com', tier: 'tier_1', heat_score: 87, recruiting_window: 'open', radar_angle: 0, notes: null, search_modifier: null },
+  { id: uuid(2), company_name: 'Anthropic', domain: 'anthropic.com', tier: 'tier_1', heat_score: 45, recruiting_window: 'uncertain', radar_angle: 36, notes: null, search_modifier: null },
+  { id: uuid(3), company_name: 'OpenAI', domain: 'openai.com', tier: 'tier_1', heat_score: 92, recruiting_window: 'open', radar_angle: 72, notes: null, search_modifier: null },
+  { id: uuid(4), company_name: 'Cursor', domain: 'cursor.sh', tier: 'tier_1', heat_score: 30, recruiting_window: 'closed', radar_angle: 108, notes: null, search_modifier: 'AI' },
+  { id: uuid(5), company_name: 'Notion', domain: 'notion.so', tier: 'tier_2', heat_score: 68, recruiting_window: 'open', radar_angle: 144, notes: null, search_modifier: 'app' },
+  { id: uuid(6), company_name: 'Linear', domain: 'linear.app', tier: 'tier_2', heat_score: 22, recruiting_window: 'closed', radar_angle: 180, notes: null, search_modifier: 'app' },
+  { id: uuid(7), company_name: 'Stripe', domain: 'stripe.com', tier: 'tier_2', heat_score: 55, recruiting_window: 'uncertain', radar_angle: 216, notes: null, search_modifier: null },
+  { id: uuid(8), company_name: 'Scale AI', domain: 'scale.com', tier: 'tier_2', heat_score: 78, recruiting_window: 'open', radar_angle: 252, notes: null, search_modifier: null },
+  { id: uuid(9), company_name: 'Cohere', domain: 'cohere.com', tier: 'tier_3', heat_score: 61, recruiting_window: 'open', radar_angle: 288, notes: null, search_modifier: null },
+  { id: uuid(10), company_name: 'Mistral', domain: 'mistral.ai', tier: 'tier_3', heat_score: 40, recruiting_window: 'uncertain', radar_angle: 324, notes: null, search_modifier: null },
 ];
 
 export const SEED_SIGNALS: Signal[] = [
