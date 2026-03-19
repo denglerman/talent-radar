@@ -190,19 +190,20 @@ export async function POST(request: Request) {
         });
       }
 
-      // Only purge old signals after we have new ones ready to insert
-      const { data: deleted } = await supabase
-        .from('signals')
-        .delete()
-        .eq('company_id', company.id)
-        .select('id');
-      totalPurged += deleted?.length ?? 0;
+      // Only purge and replace if we actually have new signals to insert
+      if (newSignals.length > 0) {
+        const { data: deleted } = await supabase
+          .from('signals')
+          .delete()
+          .eq('company_id', company.id)
+          .select('id');
+        totalPurged += deleted?.length ?? 0;
 
-      // Insert all new signals
-      for (const signal of newSignals) {
-        const { error: insertError } = await supabase.from('signals').insert(signal);
-        if (!insertError) {
-          totalNewSignals++;
+        for (const signal of newSignals) {
+          const { error: insertError } = await supabase.from('signals').insert(signal);
+          if (!insertError) {
+            totalNewSignals++;
+          }
         }
       }
 
