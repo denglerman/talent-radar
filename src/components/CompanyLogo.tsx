@@ -31,7 +31,7 @@ export default function CompanyLogo({ domain, companyName, size = 16, heatColor 
 
   return (
     <img
-      src={`https://logo.clearbit.com/${domain}`}
+      src={`https://logos.hunter.io/${domain}`}
       alt={companyName}
       className="rounded-sm shrink-0"
       style={{ width: size, height: size }}
