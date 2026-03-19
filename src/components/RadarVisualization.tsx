@@ -10,12 +10,6 @@ interface Props {
   onSelect: (id: string) => void;
 }
 
-const TIER_RADIUS: Record<string, number> = {
-  tier_1: 0.3,
-  tier_2: 0.55,
-  tier_3: 0.78,
-};
-
 function getHeatColor(score: number): { fill: string; glow: string; pulse: 'hot' | 'warm' | 'none' } {
   if (score >= 70) return { fill: '#ef4444', glow: 'rgba(239,68,68,0.6)', pulse: 'hot' };
   if (score >= 40) return { fill: '#f59e0b', glow: 'rgba(245,158,11,0.5)', pulse: 'warm' };
@@ -30,17 +24,20 @@ export default function RadarVisualization({ companies, selectedId, onSelect }: 
   const cx = width / 2;
   const cy = height - 30;
   const maxR = height - 60;
+  const minR = maxR * 0.15;
 
+  // Decorative guide rings
   const rings = [
-    { r: maxR * 0.3, label: 'Tier 1' },
-    { r: maxR * 0.55, label: 'Tier 2' },
-    { r: maxR * 0.78, label: 'Tier 3' },
+    { r: maxR * 0.25 },
+    { r: maxR * 0.5 },
+    { r: maxR * 0.75 },
   ];
 
   const companyPositions = useMemo(() => {
     return companies.map((c) => {
-      const radiusFraction = TIER_RADIUS[c.tier] || 0.5;
-      const r = maxR * radiusFraction;
+      // Heat score determines distance: highest score = closest to center
+      // score 100 -> minR (closest), score 0 -> maxR (furthest)
+      const r = minR + (1 - c.heat_score / 100) * (maxR - minR);
       // Map radar_angle (0-360) to semicircle (PI to 0, left to right across the top)
       const mappedAngle = Math.PI - (c.radar_angle / 360) * Math.PI;
       const x = cx + r * Math.cos(mappedAngle);
@@ -48,7 +45,7 @@ export default function RadarVisualization({ companies, selectedId, onSelect }: 
       const heat = getHeatColor(c.heat_score);
       return { ...c, x, y, heat };
     });
-  }, [companies, cx, cy, maxR]);
+  }, [companies, cx, cy, maxR, minR]);
 
   const hoveredCompany = companyPositions.find((c) => c.id === hoveredId);
 
@@ -78,10 +75,10 @@ export default function RadarVisualization({ companies, selectedId, onSelect }: 
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
-          <linearGradient id="sweepGrad" x1="0" y1="0" x2="1" y2="0">
+          <linearGradient id="sweepGrad" gradientTransform="rotate(15)">
             <stop offset="0%" stopColor="rgba(0,245,255,0)" />
-            <stop offset="70%" stopColor="rgba(0,245,255,0.08)" />
-            <stop offset="100%" stopColor="rgba(0,245,255,0.25)" />
+            <stop offset="60%" stopColor="rgba(0,245,255,0.06)" />
+            <stop offset="100%" stopColor="rgba(0,245,255,0.2)" />
           </linearGradient>
           <clipPath id="semiClip">
             <rect x="0" y="0" width={width} height={cy + 1} />
@@ -129,21 +126,35 @@ export default function RadarVisualization({ companies, selectedId, onSelect }: 
             );
           })}
 
-          {/* Radar sweep arm */}
-          <motion.g
-            animate={{ rotate: [180, 0] }}
-            transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
-            style={{ transformOrigin: `${cx}px ${cy}px` }}
-          >
+          {/* Radar sweep arm -- native SVG animateTransform for reliable rotation */}
+          <g>
+            <animateTransform
+              attributeName="transform"
+              type="rotate"
+              from={`0 ${cx} ${cy}`}
+              to={`-180 ${cx} ${cy}`}
+              dur="6s"
+              repeatCount="indefinite"
+            />
+            {/* Sweep wedge (trailing glow) */}
             <path
-              d={`M ${cx} ${cy} L ${cx + sweepArmLength} ${cy} A ${sweepArmLength} ${sweepArmLength} 0 0 0 ${cx + sweepArmLength * Math.cos(Math.PI / 12)} ${cy - sweepArmLength * Math.sin(Math.PI / 12)} Z`}
+              d={`M ${cx} ${cy} L ${cx + sweepArmLength} ${cy} A ${sweepArmLength} ${sweepArmLength} 0 0 0 ${cx + sweepArmLength * Math.cos(Math.PI / 10)} ${cy - sweepArmLength * Math.sin(Math.PI / 10)} Z`}
               fill="url(#sweepGrad)"
+              opacity={0.5}
+            />
+            {/* Sweep line */}
+            <line
+              x1={cx}
+              y1={cy}
+              x2={cx + sweepArmLength}
+              y2={cy}
+              stroke="#00f5ff"
+              strokeWidth="1.5"
               opacity={0.6}
             />
-            <line x1={cx} y1={cy} x2={cx + sweepArmLength} y2={cy} stroke="#00f5ff" strokeWidth="1" opacity={0.5} />
-          </motion.g>
+          </g>
 
-          {/* Company dots — pulse via Framer Motion animating r attribute (stays in place) */}
+          {/* Company dots */}
           {companyPositions.map((c) => {
             const isSelected = selectedId === c.id;
             const baseR = isSelected ? 7 : 5;
@@ -223,7 +234,7 @@ export default function RadarVisualization({ companies, selectedId, onSelect }: 
                   fontSize="9"
                   fontFamily="var(--font-geist-mono), monospace"
                 >
-                  {c.company_name.length > 14 ? c.company_name.slice(0, 13) + '\u2026' : c.company_name}
+                  {c.company_name.length > 14 ? c.company_name.slice(0, 13) + '…' : c.company_name}
                 </text>
               </g>
             );
