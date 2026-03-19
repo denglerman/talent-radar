@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CompanyWithSignals, SIGNAL_TYPE_LABELS, SignalType, UrgencyLevel, RecruitingWindow } from '@/types';
 import CompanyLogo from './CompanyLogo';
@@ -118,10 +118,14 @@ export default function CompanyDetailPanel({ company, onClose, onDeleteCompany, 
   const [editDomain, setEditDomain] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const savingForRef = useRef<string | null>(null);
+
   // Reset state when company changes (fixes confirmDelete leak across selections)
   useEffect(() => {
     setConfirmDelete(false);
     setEditing(false);
+    setSaving(false);
+    savingForRef.current = null;
   }, [company?.id]);
 
   const handleDelete = async () => {
@@ -141,10 +145,14 @@ export default function CompanyDetailPanel({ company, onClose, onDeleteCompany, 
 
   const handleSaveEdit = async () => {
     if (!company || !editName.trim() || !editDomain.trim()) return;
+    const targetId = company.id;
+    savingForRef.current = targetId;
     setSaving(true);
     await onEditCompany(company.id, editName.trim(), editDomain.trim());
-    setSaving(false);
-    setEditing(false);
+    if (savingForRef.current === targetId) {
+      setSaving(false);
+      setEditing(false);
+    }
   };
 
   const handleCancelEdit = () => {
