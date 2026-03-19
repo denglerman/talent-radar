@@ -133,11 +133,9 @@ export async function POST(request: Request) {
         language: 'en',
         apiKey: newsApiKey,
       });
-      // Only constrain to title search when there's no search_modifier,
-      // otherwise the modifier keyword would also need to appear in the headline
-      if (!company.search_modifier) {
-        params.set('searchIn', 'title');
-      }
+      // Always restrict to title search to avoid false positives from body text
+      // (e.g. "notion" as a common English word appearing in article bodies)
+      params.set('searchIn', 'title');
 
       const newsRes = await fetch(`https://newsapi.org/v2/everything?${params}`);
       if (!newsRes.ok) {
@@ -190,26 +188,25 @@ export async function POST(request: Request) {
         });
       }
 
-      // Only purge and replace if we actually have new signals to insert
-      if (newSignals.length > 0) {
-        const { data: deleted, error: deleteError } = await supabase
-          .from('signals')
-          .delete()
-          .eq('company_id', company.id)
-          .select('id');
-        if (deleteError) {
-          errors.push(`Failed to purge signals for ${company.company_name}: ${deleteError.message}`);
-          continue;
-        }
-        totalPurged += deleted?.length ?? 0;
+      // Always purge old signals on refresh so stale/irrelevant articles are removed
+      // even when no new signals pass the improved filters
+      const { data: deleted, error: deleteError } = await supabase
+        .from('signals')
+        .delete()
+        .eq('company_id', company.id)
+        .select('id');
+      if (deleteError) {
+        errors.push(`Failed to purge signals for ${company.company_name}: ${deleteError.message}`);
+        continue;
+      }
+      totalPurged += deleted?.length ?? 0;
 
-        for (const signal of newSignals) {
-          const { error: insertError } = await supabase.from('signals').insert(signal);
-          if (!insertError) {
-            totalNewSignals++;
-          } else {
-            errors.push(`Failed to insert signal for ${company.company_name}: ${insertError.message}`);
-          }
+      for (const signal of newSignals) {
+        const { error: insertError } = await supabase.from('signals').insert(signal);
+        if (!insertError) {
+          totalNewSignals++;
+        } else {
+          errors.push(`Failed to insert signal for ${company.company_name}: ${insertError.message}`);
         }
       }
 
