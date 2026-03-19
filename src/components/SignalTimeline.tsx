@@ -128,14 +128,6 @@ export default function SignalTimeline({ signals, companies }: Props) {
                 <p className="text-[11px] text-[#94a3b8] leading-relaxed line-clamp-2">
                   {signal.headline}
                 </p>
-                {signal.source_url && (
-                  <div className="flex items-center gap-1 mt-1.5">
-                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="text-[#334155]">
-                      <path d="M4 1H2a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V6M6 1h3v3M4 6l5-5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    <span className="data-mono text-[9px] text-[#334155]">Open article</span>
-                  </div>
-                )}
               </a>
             </motion.div>
           );

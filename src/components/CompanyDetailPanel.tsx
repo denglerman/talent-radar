@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CompanyWithSignals, SIGNAL_TYPE_LABELS, SignalType, UrgencyLevel, RecruitingWindow } from '@/types';
 import CompanyLogo from './CompanyLogo';
@@ -7,6 +8,7 @@ import CompanyLogo from './CompanyLogo';
 interface Props {
   company: CompanyWithSignals | null;
   onClose: () => void;
+  onDeleteCompany: (companyId: string) => Promise<void>;
 }
 
 function getUrgencyColor(urgency: UrgencyLevel): string {
@@ -108,7 +110,16 @@ function HeatGauge({ score }: { score: number }) {
   );
 }
 
-export default function CompanyDetailPanel({ company, onClose }: Props) {
+export default function CompanyDetailPanel({ company, onClose, onDeleteCompany }: Props) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const handleDelete = async () => {
+    if (!company) return;
+    setConfirmDelete(false);
+    onClose();
+    await onDeleteCompany(company.id);
+  };
+
   return (
     <AnimatePresence>
       {company && (
@@ -132,15 +143,54 @@ export default function CompanyDetailPanel({ company, onClose }: Props) {
                 />
                 <h2 className="text-sm font-semibold text-white">{company.company_name}</h2>
               </div>
-              <button
-                onClick={onClose}
-                className="text-[#475569] hover:text-white transition-colors"
-              >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  className="text-[#334155] hover:text-[#ef4444] transition-colors p-1"
+                  title="Delete company"
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M3 4h8M5 4V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1M10.5 4l-.5 7a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1L3.5 4" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+                <button
+                  onClick={onClose}
+                  className="text-[#475569] hover:text-white transition-colors"
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </div>
             </div>
+
+            {/* Delete confirmation */}
+            <AnimatePresence>
+              {confirmDelete && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-3 py-2 px-3 bg-[#ef4444]/10 border border-[#ef4444]/30 rounded-lg flex items-center justify-between"
+                >
+                  <span className="data-mono text-[10px] text-[#ef4444]">Delete this company?</span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleDelete}
+                      className="data-mono text-[10px] text-[#ef4444] hover:text-white transition-colors font-semibold"
+                    >
+                      Yes, delete
+                    </button>
+                    <button
+                      onClick={() => setConfirmDelete(false)}
+                      className="data-mono text-[10px] text-[#64748b] hover:text-white transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Heat gauge + window */}
             <div className="flex items-center justify-between">
@@ -217,22 +267,12 @@ export default function CompanyDetailPanel({ company, onClose }: Props) {
                           {signal.why_it_matters}
                         </p>
                       )}
-                      <div className="flex items-center justify-between mt-1.5">
-                        <span className="data-mono text-[9px] text-[#334155]">
-                          {new Date(signal.detected_at).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                          })}
-                        </span>
-                        {signal.source_url && (
-                          <div className="flex items-center gap-1">
-                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="text-[#334155]">
-                              <path d="M4 1H2a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V6M6 1h3v3M4 6l5-5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                            <span className="data-mono text-[9px] text-[#334155]">Open</span>
-                          </div>
-                        )}
+                      <div className="data-mono text-[9px] text-[#334155] mt-1.5">
+                        {new Date(signal.detected_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
                       </div>
                     </motion.a>
                   );

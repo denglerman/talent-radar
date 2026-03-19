@@ -240,6 +240,7 @@ export default function Dashboard({ companiesWithSignals: initialData, initialLa
       <CompanyDetailPanel
         company={selectedCompany}
         onClose={() => setSelectedId(null)}
+        onDeleteCompany={handleDeleteCompany}
       />
 
       {/* Toast notifications */}
