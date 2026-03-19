@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { CompanyWithSignals } from '@/types';
 
 interface Props {
@@ -50,6 +50,39 @@ export default function RadarVisualization({ companies, selectedId, onSelect }: 
   const hoveredCompany = companyPositions.find((c) => c.id === hoveredId);
 
   const sweepArmLength = maxR;
+
+  // Animated sweep arm: back and forth across 180 degrees
+  const [sweepAngle, setSweepAngle] = useState(0); // 0 = right edge, PI = left edge
+  const dirRef = useRef(1); // 1 = moving left (0->PI), -1 = moving right (PI->0)
+  const angleRef = useRef(0);
+
+  useEffect(() => {
+    let rafId: number;
+    let lastTime: number | null = null;
+    const speed = Math.PI / 6; // full sweep in 6 seconds
+
+    const tick = (time: number) => {
+      if (lastTime === null) { lastTime = time; }
+      const dt = (time - lastTime) / 1000;
+      lastTime = time;
+
+      angleRef.current += dirRef.current * speed * dt;
+
+      if (angleRef.current >= Math.PI) {
+        angleRef.current = Math.PI;
+        dirRef.current = -1;
+      } else if (angleRef.current <= 0) {
+        angleRef.current = 0;
+        dirRef.current = 1;
+      }
+
+      setSweepAngle(angleRef.current);
+      rafId = requestAnimationFrame(tick);
+    };
+
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, []);
 
   return (
     <motion.div
@@ -126,33 +159,41 @@ export default function RadarVisualization({ companies, selectedId, onSelect }: 
             );
           })}
 
-          {/* Radar sweep arm -- native SVG animateTransform for reliable rotation */}
-          <g>
-            <animateTransform
-              attributeName="transform"
-              type="rotate"
-              from={`0 ${cx} ${cy}`}
-              to={`-180 ${cx} ${cy}`}
-              dur="6s"
-              repeatCount="indefinite"
-            />
-            {/* Sweep wedge (trailing glow) */}
-            <path
-              d={`M ${cx} ${cy} L ${cx + sweepArmLength} ${cy} A ${sweepArmLength} ${sweepArmLength} 0 0 0 ${cx + sweepArmLength * Math.cos(Math.PI / 10)} ${cy - sweepArmLength * Math.sin(Math.PI / 10)} Z`}
-              fill="url(#sweepGrad)"
-              opacity={0.5}
-            />
-            {/* Sweep line */}
-            <line
-              x1={cx}
-              y1={cy}
-              x2={cx + sweepArmLength}
-              y2={cy}
-              stroke="#00f5ff"
-              strokeWidth="1.5"
-              opacity={0.6}
-            />
-          </g>
+          {/* Radar sweep arm -- animated back and forth with trailing wedge */}
+          {(() => {
+            const armX = cx + sweepArmLength * Math.cos(sweepAngle);
+            const armY = cy - sweepArmLength * Math.sin(sweepAngle);
+            // Trailing wedge: ~18deg behind the direction of movement
+            const wedgeSpan = Math.PI / 10;
+            const trailAngle = dirRef.current === 1
+              ? sweepAngle - wedgeSpan  // moving left, trail is to the right (lower angle)
+              : sweepAngle + wedgeSpan; // moving right, trail is to the left (higher angle)
+            const clampedTrail = Math.max(0, Math.min(Math.PI, trailAngle));
+            const trailX = cx + sweepArmLength * Math.cos(clampedTrail);
+            const trailY = cy - sweepArmLength * Math.sin(clampedTrail);
+            // Determine arc sweep flag based on direction
+            const sweepFlag = dirRef.current === 1 ? 1 : 0;
+            return (
+              <g>
+                {/* Sweep wedge (trailing glow behind direction of movement) */}
+                <path
+                  d={`M ${cx} ${cy} L ${armX} ${armY} A ${sweepArmLength} ${sweepArmLength} 0 0 ${sweepFlag} ${trailX} ${trailY} Z`}
+                  fill="url(#sweepGrad)"
+                  opacity={0.5}
+                />
+                {/* Sweep line */}
+                <line
+                  x1={cx}
+                  y1={cy}
+                  x2={armX}
+                  y2={armY}
+                  stroke="#00f5ff"
+                  strokeWidth="1.5"
+                  opacity={0.6}
+                />
+              </g>
+            );
+          })()}
 
           {/* Company dots */}
           {companyPositions.map((c) => {
@@ -243,21 +284,23 @@ export default function RadarVisualization({ companies, selectedId, onSelect }: 
           {/* Center point */}
           <circle cx={cx} cy={cy} r={8} fill="#0a0a0a" stroke="#00f5ff" strokeWidth="1.5" />
           <circle cx={cx} cy={cy} r={3} fill="#00f5ff" opacity={0.8} />
-          <text
-            x={cx}
-            y={cy + 20}
-            textAnchor="middle"
-            fill="#00f5ff"
-            fontSize="10"
-            fontWeight="bold"
-            fontFamily="var(--font-geist-mono), monospace"
-          >
-            COGNITION
-          </text>
         </g>
 
         {/* Bottom edge line */}
         <line x1={cx - maxR} y1={cy} x2={cx + maxR} y2={cy} stroke="#1a1a2e" strokeWidth="1" />
+
+        {/* COGNITION label -- outside clipPath so it's visible below the baseline */}
+        <text
+          x={cx}
+          y={cy + 20}
+          textAnchor="middle"
+          fill="#00f5ff"
+          fontSize="10"
+          fontWeight="bold"
+          fontFamily="var(--font-geist-mono), monospace"
+        >
+          COGNITION
+        </text>
       </svg>
 
       {/* Tooltip */}
