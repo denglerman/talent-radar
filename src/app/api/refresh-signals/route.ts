@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const newsApiKey = process.env.NEWS_API_KEY || '';
+const perigonApiKey = process.env.PERIGON_API_KEY || '';
 
 type SignalType = 'layoff' | 'acquisition' | 'leadership_change' | 'funding_round' | 'reorg' | 'culture';
 type UrgencyLevel = 'high' | 'medium' | 'low';
@@ -13,6 +14,23 @@ interface NewsArticle {
   description: string | null;
   url: string;
   publishedAt: string;
+}
+
+interface TargetCompany {
+  id: string;
+  company_name: string;
+  search_modifier: string | null;
+  [key: string]: unknown;
+}
+
+interface NewSignal {
+  company_id: string;
+  signal_type: SignalType;
+  headline: string;
+  source_url: string | null;
+  why_it_matters: string;
+  urgency: UrgencyLevel;
+  detected_at: string;
 }
 
 // Keywords that indicate an article is relevant to talent intelligence
@@ -84,12 +102,160 @@ function isRelevantToTalentIntelligence(headline: string, description: string | 
   return RELEVANCE_KEYWORDS.some((keyword) => text.includes(keyword));
 }
 
+// ── Shared article filtering ──────────────────────────────────────────────────
+
+function filterArticles(
+  articles: NewsArticle[],
+  companyName: string,
+): NewsArticle[] {
+  return articles.filter((article) => {
+    if (!article.title || article.title === '[Removed]') return false;
+    if (!headlineContainsCompanyName(article.title, companyName)) return false;
+    if (!isRelevantToTalentIntelligence(article.title, article.description)) return false;
+    return true;
+  });
+}
+
+// ── NewsAPI fetcher ───────────────────────────────────────────────────────────
+
+async function fetchNewsAPISignals(
+  company: TargetCompany,
+  errors: string[],
+): Promise<NewsArticle[]> {
+  if (!newsApiKey) return [];
+
+  try {
+    const query = `"${company.company_name}" AND (layoff OR acquisition OR restructuring OR "leadership change" OR funding OR reorg)`;
+    const params = new URLSearchParams({
+      q: query,
+      sortBy: 'publishedAt',
+      pageSize: '5',
+      language: 'en',
+      apiKey: newsApiKey,
+    });
+    // Always restrict to title search to avoid false positives from body text
+    params.set('searchIn', 'title');
+
+    const res = await fetch(`https://newsapi.org/v2/everything?${params}`);
+    if (!res.ok) {
+      errors.push(`NewsAPI error for ${company.company_name}: ${res.status}`);
+      return [];
+    }
+
+    const data = await res.json();
+    return (data.articles || []).map((a: { title: string; description: string | null; url: string; publishedAt: string }) => ({
+      title: a.title,
+      description: a.description,
+      url: a.url,
+      publishedAt: a.publishedAt,
+    }));
+  } catch (err) {
+    errors.push(`NewsAPI fetch failed for ${company.company_name}: ${err instanceof Error ? err.message : 'unknown'}`);
+    return [];
+  }
+}
+
+// ── Perigon fetcher ───────────────────────────────────────────────────────────
+
+async function fetchPerigonSignals(
+  company: TargetCompany,
+  errors: string[],
+): Promise<NewsArticle[]> {
+  if (!perigonApiKey) return [];
+
+  try {
+    // For modifier companies, append the search_modifier to the query
+    const searchName = company.search_modifier
+      ? `"${company.company_name}" ${company.search_modifier}`
+      : `"${company.company_name}"`;
+
+    const params = new URLSearchParams({
+      q: searchName,
+      category: 'tech',
+      sortBy: 'date',
+      size: '5',
+      source: 'techcrunch.com,wired.com,theverge.com,bloomberg.com,reuters.com',
+      apiKey: perigonApiKey,
+    });
+
+    const res = await fetch(`https://api.perigon.io/v1/articles/all?${params}`);
+    if (!res.ok) {
+      errors.push(`Perigon error for ${company.company_name}: ${res.status}`);
+      return [];
+    }
+
+    const data = await res.json();
+    // Map Perigon response fields to NewsArticle shape
+    return (data.articles || []).map((a: { title: string; description: string | null; url: string; pubDate: string }) => ({
+      title: a.title,
+      description: a.description,
+      url: a.url,
+      publishedAt: a.pubDate,
+    }));
+  } catch (err) {
+    errors.push(`Perigon fetch failed for ${company.company_name}: ${err instanceof Error ? err.message : 'unknown'}`);
+    return [];
+  }
+}
+
+// ── Merge & deduplicate ───────────────────────────────────────────────────────
+
+function getWordSet(text: string): Set<string> {
+  return new Set(text.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter(Boolean));
+}
+
+function headlineSimilarity(a: string, b: string): number {
+  const wordsA = getWordSet(a);
+  const wordsB = getWordSet(b);
+  if (wordsA.size === 0 || wordsB.size === 0) return 0;
+  let shared = 0;
+  for (const w of wordsA) {
+    if (wordsB.has(w)) shared++;
+  }
+  const total = Math.max(wordsA.size, wordsB.size);
+  return shared / total;
+}
+
+function mergeAndDedup(articles: NewsArticle[]): NewsArticle[] {
+  // 1. Deduplicate by URL
+  const seenUrls = new Set<string>();
+  const urlDeduped: NewsArticle[] = [];
+  for (const article of articles) {
+    const url = article.url?.toLowerCase() || '';
+    if (url && seenUrls.has(url)) continue;
+    if (url) seenUrls.add(url);
+    urlDeduped.push(article);
+  }
+
+  // 2. Deduplicate by headline similarity (80%+ word overlap -> keep earlier)
+  const result: NewsArticle[] = [];
+  for (const article of urlDeduped) {
+    const existingIdx = result.findIndex(
+      (existing) => headlineSimilarity(existing.title, article.title) >= 0.8,
+    );
+    if (existingIdx < 0) {
+      result.push(article);
+    } else {
+      // Keep the one with the earlier publish date
+      const existingDate = new Date(result[existingIdx].publishedAt).getTime();
+      const newDate = new Date(article.publishedAt).getTime();
+      if (newDate < existingDate) {
+        result[existingIdx] = article;
+      }
+    }
+  }
+
+  return result;
+}
+
+// ── Main handler ──────────────────────────────────────────────────────────────
+
 export async function POST(request: Request) {
   if (!supabaseUrl || !supabaseKey) {
     return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 });
   }
-  if (!newsApiKey) {
-    return NextResponse.json({ error: 'NEWS_API_KEY not configured' }, { status: 500 });
+  if (!newsApiKey && !perigonApiKey) {
+    return NextResponse.json({ error: 'No news API keys configured (set NEWS_API_KEY and/or PERIGON_API_KEY)' }, { status: 500 });
   }
 
   const supabase = createClient(supabaseUrl, supabaseKey);
@@ -121,53 +287,23 @@ export async function POST(request: Request) {
 
   for (const company of companies) {
     try {
-      // Build search query — always use just the company name in quotes
-      // (search_modifier is no longer appended since searchIn=title makes it
-      // require the modifier word in the title too, which is overly restrictive)
-      const query = `"${company.company_name}" AND (layoff OR acquisition OR restructuring OR "leadership change" OR funding OR reorg)`;
-      const params = new URLSearchParams({
-        q: query,
-        sortBy: 'publishedAt',
-        pageSize: '5',
-        language: 'en',
-        apiKey: newsApiKey,
-      });
-      // Always restrict to title search to avoid false positives from body text
-      // (e.g. "notion" as a common English word appearing in article bodies)
-      params.set('searchIn', 'title');
+      // Fetch from both sources in parallel
+      const [newsApiArticles, perigonArticles] = await Promise.all([
+        fetchNewsAPISignals(company as TargetCompany, errors),
+        fetchPerigonSignals(company as TargetCompany, errors),
+      ]);
 
-      const newsRes = await fetch(`https://newsapi.org/v2/everything?${params}`);
-      if (!newsRes.ok) {
-        errors.push(`NewsAPI error for ${company.company_name}: ${newsRes.status}`);
-        continue;
-      }
+      // Merge and deduplicate across sources
+      const allArticles = mergeAndDedup([...newsApiArticles, ...perigonArticles]);
 
-      const newsData = await newsRes.json();
-      const articles: NewsArticle[] = newsData.articles || [];
+      // Apply shared filters
+      const filtered = filterArticles(allArticles, company.company_name);
+      totalDiscarded += allArticles.length - filtered.length;
 
-      // Collect valid new signals before modifying the database
-      interface NewSignal {
-        company_id: string;
-        signal_type: SignalType;
-        headline: string;
-        source_url: string | null;
-        why_it_matters: string;
-        urgency: UrgencyLevel;
-        detected_at: string;
-      }
+      // Build signal objects with in-batch headline dedup
       const newSignals: NewSignal[] = [];
-
-      for (const article of articles) {
-        if (!article.title || article.title === '[Removed]') continue;
-
-        // Filter 1: headline must contain the company name
-        if (!headlineContainsCompanyName(article.title, company.company_name)) {
-          totalDiscarded++;
-          continue;
-        }
-
-        // Filter 2: article must contain at least one talent-relevant keyword
-        if (!isRelevantToTalentIntelligence(article.title, article.description)) {
+      for (const article of filtered) {
+        if (newSignals.some((s) => s.headline === article.title)) {
           totalDiscarded++;
           continue;
         }
@@ -175,12 +311,6 @@ export async function POST(request: Request) {
         const signalType = classifySignalType(article.title);
         const urgency = getUrgency(signalType);
         const whyItMatters = getWhyItMatters(signalType, company.company_name);
-
-        // Filter 3: skip duplicate headlines within this batch (syndicated articles)
-        if (newSignals.some((s) => s.headline === article.title)) {
-          totalDiscarded++;
-          continue;
-        }
 
         newSignals.push({
           company_id: company.id,
@@ -194,7 +324,6 @@ export async function POST(request: Request) {
       }
 
       // Always purge old signals on refresh so stale/irrelevant articles are removed
-      // even when no new signals pass the improved filters
       const { data: deleted, error: deleteError } = await supabase
         .from('signals')
         .delete()
@@ -245,6 +374,10 @@ export async function POST(request: Request) {
     new_signals_added: totalNewSignals,
     old_signals_purged: totalPurged,
     articles_discarded: totalDiscarded,
+    sources: {
+      newsapi: newsApiKey ? 'active' : 'not configured',
+      perigon: perigonApiKey ? 'active' : 'not configured',
+    },
     errors: errors.length > 0 ? errors : undefined,
   });
 }
