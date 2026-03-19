@@ -35,11 +35,47 @@ interface NewSignal {
 
 // Keywords that indicate an article is relevant to talent intelligence
 const RELEVANCE_KEYWORDS = [
+  // Hiring & Talent
   'engineer', 'engineering', 'team', 'hire', 'hiring', 'talent',
-  'layoff', 'job cut', 'jobs', 'staff', 'employees',
-  'acquisition', 'acquires', 'acquired', 'merger',
-  'ceo', 'cto', 'vp', 'raises', 'funding', 'series',
-  'reorg', 'restructur', 'leadership',
+  'headcount', 'workforce', 'contractor', 'outsource', 'outsourcing',
+  'offshore', 'remote', 'hybrid', 'hiring freeze', 'freeze',
+
+  // Layoffs & Workforce Reduction
+  'layoff', 'layoffs', 'job cut', 'jobs', 'staff', 'employees',
+  'downsizing', 'rightsizing', 'furlough', 'redundant',
+
+  // Restructuring & Org Changes
+  'reorg', 'restructure', 'restructuring', 'reorganization',
+  'pivot', 'spinoff', 'spin-off', 'divest', 'divestiture',
+  'wind down', 'shut down', 'shutdown', 'discontinue', 'sunset',
+
+  // Leadership & Culture
+  'ceo', 'cto', 'cpo', 'chro', 'vp', 'founder', 'cofounder', 'co-founder',
+  'president', 'fired', 'departed', 'resigned', 'resignation',
+  'steps down', 'stepping down', 'exodus', 'turmoil', 'morale', 'culture',
+
+  // M&A & Deals
+  'acquisition', 'acquires', 'acquired', 'merger', 'partnership',
+  'partners with', 'contract', 'deal',
+
+  // Funding & Financial
+  'raises', 'funding', 'pre-seed', 'seed', 'series a', 'series b',
+  'series c', 'series d', 'series e', 'series f', 'series g',
+  'growth round', 'late stage', 'pre-ipo', 'ipo', 'going public',
+  'unicorn', 'valuation', 'valued at', 'down round', 'write-down',
+  'writedown', 'runway', 'burn rate', 'bridge', 'bankruptcy',
+  'bankrupt', 'insolvent', 'losses',
+
+  // Growth & Product Signals
+  'launched', 'launches', 'launch', 'shipped', 'released', 'release',
+  'announced', 'breakthrough',
+
+  // AI-Specific
+  'ai-driven', 'ai-first', 'automation', 'automated', 'replace',
+  'replaced', 'efficiency', 'productivity',
+
+  // Return to Office
+  'return to office', 'rto',
 ];
 
 function classifySignalType(headline: string): SignalType {
