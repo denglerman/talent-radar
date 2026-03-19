@@ -207,6 +207,8 @@ export async function POST(request: Request) {
           const { error: insertError } = await supabase.from('signals').insert(signal);
           if (!insertError) {
             totalNewSignals++;
+          } else {
+            errors.push(`Failed to insert signal for ${company.company_name}: ${insertError.message}`);
           }
         }
       }
