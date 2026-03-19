@@ -121,11 +121,10 @@ export async function POST(request: Request) {
 
   for (const company of companies) {
     try {
-      // Build search query — append search_modifier for generic company names
-      const searchName = company.search_modifier
-        ? `"${company.company_name}" ${company.search_modifier}`
-        : `"${company.company_name}"`;
-      const query = `${searchName} AND (layoff OR acquisition OR restructuring OR "leadership change" OR funding OR reorg)`;
+      // Build search query — always use just the company name in quotes
+      // (search_modifier is no longer appended since searchIn=title makes it
+      // require the modifier word in the title too, which is overly restrictive)
+      const query = `"${company.company_name}" AND (layoff OR acquisition OR restructuring OR "leadership change" OR funding OR reorg)`;
       const params = new URLSearchParams({
         q: query,
         sortBy: 'publishedAt',
