@@ -18,7 +18,7 @@ interface NewsArticle {
 // Keywords that indicate an article is relevant to talent intelligence
 const RELEVANCE_KEYWORDS = [
   'engineer', 'engineering', 'team', 'hire', 'hiring', 'talent',
-  'layoff', 'cut', 'jobs', 'staff', 'employees',
+  'layoff', 'job cut', 'jobs', 'staff', 'employees',
   'acquisition', 'acquires', 'acquired', 'merger',
   'ceo', 'cto', 'vp', 'raises', 'funding', 'series',
   'reorg', 'restructur', 'leadership',
