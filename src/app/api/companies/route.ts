@@ -54,7 +54,10 @@ export async function DELETE(request: Request) {
   }
 
   // Delete all signals for this company first
-  await supabase.from('signals').delete().eq('company_id', companyId);
+  const { error: signalsError } = await supabase.from('signals').delete().eq('company_id', companyId);
+  if (signalsError) {
+    return NextResponse.json({ error: 'Failed to delete company signals: ' + signalsError.message }, { status: 500 });
+  }
 
   // Delete the company
   const { error } = await supabase.from('target_companies').delete().eq('id', companyId);

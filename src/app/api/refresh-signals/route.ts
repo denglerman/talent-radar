@@ -16,7 +16,7 @@ interface NewsArticle {
 
 function classifySignalType(headline: string): SignalType {
   const lower = headline.toLowerCase();
-  if (lower.includes('layoff') || lower.includes('cut') || lower.includes('fired') || lower.includes('laying off') || lower.includes('job cuts')) return 'layoff';
+  if (lower.includes('layoff') || lower.includes('job cut') || lower.includes('fired') || lower.includes('laying off') || lower.includes('job cuts') || lower.includes('cuts jobs') || lower.includes('cut jobs')) return 'layoff';
   if (lower.includes('acqui') || lower.includes('merger') || lower.includes('bought') || lower.includes('acquire')) return 'acquisition';
   if (lower.includes('ceo') || lower.includes('cto') || lower.includes('vp') || lower.includes('chief') || lower.includes('appoints') || lower.includes('steps down') || lower.includes('resign')) return 'leadership_change';
   if (lower.includes('raises') || lower.includes('funding') || lower.includes('million') || lower.includes('billion') || lower.includes('series')) return 'funding_round';
