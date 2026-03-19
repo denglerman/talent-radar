@@ -125,7 +125,8 @@ async function fetchNewsAPISignals(
   if (!newsApiKey) return [];
 
   try {
-    const query = `"${company.company_name}" AND (layoff OR acquisition OR restructuring OR "leadership change" OR funding OR reorg)`;
+    const searchName = company.search_modifier ? `"${company.company_name}" ${company.search_modifier}` : `"${company.company_name}"`;
+    const query = `${searchName} AND (layoff OR acquisition OR restructuring OR "leadership change" OR funding OR reorg)`;
     const params = new URLSearchParams({
       q: query,
       sortBy: 'publishedAt',
@@ -323,17 +324,20 @@ export async function POST(request: Request) {
         });
       }
 
-      // Always purge old signals on refresh so stale/irrelevant articles are removed
-      const { data: deleted, error: deleteError } = await supabase
-        .from('signals')
-        .delete()
-        .eq('company_id', company.id)
-        .select('id');
-      if (deleteError) {
-        errors.push(`Failed to purge signals for ${company.company_name}: ${deleteError.message}`);
-        continue;
+      // Only purge old signals if at least one source returned results
+      // (prevents data loss during transient API outages)
+      if (newsApiArticles.length > 0 || perigonArticles.length > 0) {
+        const { data: deleted, error: deleteError } = await supabase
+          .from('signals')
+          .delete()
+          .eq('company_id', company.id)
+          .select('id');
+        if (deleteError) {
+          errors.push(`Failed to purge signals for ${company.company_name}: ${deleteError.message}`);
+          continue;
+        }
+        totalPurged += deleted?.length ?? 0;
       }
-      totalPurged += deleted?.length ?? 0;
 
       for (const signal of newSignals) {
         const { error: insertError } = await supabase.from('signals').insert(signal);
