@@ -127,12 +127,16 @@ export async function POST(request: Request) {
       const query = `${searchName} AND (layoff OR acquisition OR restructuring OR "leadership change" OR funding OR reorg)`;
       const params = new URLSearchParams({
         q: query,
-        searchIn: 'title',
         sortBy: 'publishedAt',
         pageSize: '5',
         language: 'en',
         apiKey: newsApiKey,
       });
+      // Only constrain to title search when there's no search_modifier,
+      // otherwise the modifier keyword would also need to appear in the headline
+      if (!company.search_modifier) {
+        params.set('searchIn', 'title');
+      }
 
       const newsRes = await fetch(`https://newsapi.org/v2/everything?${params}`);
       if (!newsRes.ok) {
