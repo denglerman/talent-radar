@@ -121,11 +121,10 @@ export async function POST(request: Request) {
 
   for (const company of companies) {
     try {
-      // Build search query — append search_modifier for generic company names
-      const searchName = company.search_modifier
-        ? `"${company.company_name}" ${company.search_modifier}`
-        : `"${company.company_name}"`;
-      const query = `${searchName} AND (layoff OR acquisition OR restructuring OR "leadership change" OR funding OR reorg)`;
+      // Build search query — always use just the company name in quotes
+      // (search_modifier is no longer appended since searchIn=title makes it
+      // require the modifier word in the title too, which is overly restrictive)
+      const query = `"${company.company_name}" AND (layoff OR acquisition OR restructuring OR "leadership change" OR funding OR reorg)`;
       const params = new URLSearchParams({
         q: query,
         sortBy: 'publishedAt',
@@ -133,11 +132,9 @@ export async function POST(request: Request) {
         language: 'en',
         apiKey: newsApiKey,
       });
-      // Only constrain to title search when there's no search_modifier,
-      // otherwise the modifier keyword would also need to appear in the headline
-      if (!company.search_modifier) {
-        params.set('searchIn', 'title');
-      }
+      // Always restrict to title search to avoid false positives from body text
+      // (e.g. "notion" as a common English word appearing in article bodies)
+      params.set('searchIn', 'title');
 
       const newsRes = await fetch(`https://newsapi.org/v2/everything?${params}`);
       if (!newsRes.ok) {
@@ -179,6 +176,12 @@ export async function POST(request: Request) {
         const urgency = getUrgency(signalType);
         const whyItMatters = getWhyItMatters(signalType, company.company_name);
 
+        // Filter 3: skip duplicate headlines within this batch (syndicated articles)
+        if (newSignals.some((s) => s.headline === article.title)) {
+          totalDiscarded++;
+          continue;
+        }
+
         newSignals.push({
           company_id: company.id,
           signal_type: signalType,
@@ -190,26 +193,25 @@ export async function POST(request: Request) {
         });
       }
 
-      // Only purge and replace if we actually have new signals to insert
-      if (newSignals.length > 0) {
-        const { data: deleted, error: deleteError } = await supabase
-          .from('signals')
-          .delete()
-          .eq('company_id', company.id)
-          .select('id');
-        if (deleteError) {
-          errors.push(`Failed to purge signals for ${company.company_name}: ${deleteError.message}`);
-          continue;
-        }
-        totalPurged += deleted?.length ?? 0;
+      // Always purge old signals on refresh so stale/irrelevant articles are removed
+      // even when no new signals pass the improved filters
+      const { data: deleted, error: deleteError } = await supabase
+        .from('signals')
+        .delete()
+        .eq('company_id', company.id)
+        .select('id');
+      if (deleteError) {
+        errors.push(`Failed to purge signals for ${company.company_name}: ${deleteError.message}`);
+        continue;
+      }
+      totalPurged += deleted?.length ?? 0;
 
-        for (const signal of newSignals) {
-          const { error: insertError } = await supabase.from('signals').insert(signal);
-          if (!insertError) {
-            totalNewSignals++;
-          } else {
-            errors.push(`Failed to insert signal for ${company.company_name}: ${insertError.message}`);
-          }
+      for (const signal of newSignals) {
+        const { error: insertError } = await supabase.from('signals').insert(signal);
+        if (!insertError) {
+          totalNewSignals++;
+        } else {
+          errors.push(`Failed to insert signal for ${company.company_name}: ${insertError.message}`);
         }
       }
 
