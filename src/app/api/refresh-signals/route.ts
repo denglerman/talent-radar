@@ -121,14 +121,6 @@ export async function POST(request: Request) {
 
   for (const company of companies) {
     try {
-      // Purge all existing signals for this company before fetching fresh ones
-      const { data: deleted } = await supabase
-        .from('signals')
-        .delete()
-        .eq('company_id', company.id)
-        .select('id');
-      totalPurged += deleted?.length ?? 0;
-
       // Build search query — append search_modifier for generic company names
       const searchName = company.search_modifier
         ? `"${company.company_name}" ${company.search_modifier}`
@@ -156,6 +148,18 @@ export async function POST(request: Request) {
       const newsData = await newsRes.json();
       const articles: NewsArticle[] = newsData.articles || [];
 
+      // Collect valid new signals before modifying the database
+      interface NewSignal {
+        company_id: string;
+        signal_type: SignalType;
+        headline: string;
+        source_url: string | null;
+        why_it_matters: string;
+        urgency: UrgencyLevel;
+        detected_at: string;
+      }
+      const newSignals: NewSignal[] = [];
+
       for (const article of articles) {
         if (!article.title || article.title === '[Removed]') continue;
 
@@ -175,7 +179,7 @@ export async function POST(request: Request) {
         const urgency = getUrgency(signalType);
         const whyItMatters = getWhyItMatters(signalType, company.company_name);
 
-        const { error: insertError } = await supabase.from('signals').insert({
+        newSignals.push({
           company_id: company.id,
           signal_type: signalType,
           headline: article.title,
@@ -184,7 +188,19 @@ export async function POST(request: Request) {
           urgency,
           detected_at: article.publishedAt || new Date().toISOString(),
         });
+      }
 
+      // Only purge old signals after we have new ones ready to insert
+      const { data: deleted } = await supabase
+        .from('signals')
+        .delete()
+        .eq('company_id', company.id)
+        .select('id');
+      totalPurged += deleted?.length ?? 0;
+
+      // Insert all new signals
+      for (const signal of newSignals) {
+        const { error: insertError } = await supabase.from('signals').insert(signal);
         if (!insertError) {
           totalNewSignals++;
         }
