@@ -177,12 +177,16 @@ export default function CompanyDetailPanel({ company, onClose }: Props) {
                   const urgColor = getUrgencyColor(signal.urgency);
 
                   return (
-                    <motion.div
+                    <motion.a
                       key={signal.id}
+                      href={signal.source_url || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e: React.MouseEvent) => { if (!signal.source_url) e.preventDefault(); }}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.1 + i * 0.05 }}
-                      className="bg-[#111827]/60 border border-[#1e293b] rounded-lg p-3"
+                      className={`block bg-[#111827]/60 border border-[#1e293b] rounded-lg p-3 hover:border-[#334155] transition-colors ${signal.source_url ? 'cursor-pointer' : 'cursor-default'}`}
                     >
                       <div className="flex items-center justify-between mb-1.5">
                         <span
@@ -213,14 +217,24 @@ export default function CompanyDetailPanel({ company, onClose }: Props) {
                           {signal.why_it_matters}
                         </p>
                       )}
-                      <div className="data-mono text-[9px] text-[#334155] mt-1.5">
-                        {new Date(signal.detected_at).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })}
+                      <div className="flex items-center justify-between mt-1.5">
+                        <span className="data-mono text-[9px] text-[#334155]">
+                          {new Date(signal.detected_at).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </span>
+                        {signal.source_url && (
+                          <div className="flex items-center gap-1">
+                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="text-[#334155]">
+                              <path d="M4 1H2a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V6M6 1h3v3M4 6l5-5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                            <span className="data-mono text-[9px] text-[#334155]">Open</span>
+                          </div>
+                        )}
                       </div>
-                    </motion.div>
+                    </motion.a>
                   );
                 })}
             </div>

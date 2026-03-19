@@ -116,10 +116,19 @@ export async function POST(request: Request) {
 
   let totalNewSignals = 0;
   let totalDiscarded = 0;
+  let totalPurged = 0;
   const errors: string[] = [];
 
   for (const company of companies) {
     try {
+      // Purge all existing signals for this company before fetching fresh ones
+      const { data: deleted } = await supabase
+        .from('signals')
+        .delete()
+        .eq('company_id', company.id)
+        .select('id');
+      totalPurged += deleted?.length ?? 0;
+
       // Build search query — append search_modifier for generic company names
       const searchName = company.search_modifier
         ? `"${company.company_name}" ${company.search_modifier}`
@@ -161,16 +170,6 @@ export async function POST(request: Request) {
           totalDiscarded++;
           continue;
         }
-
-        // Check for duplicate headline
-        const { data: existing } = await supabase
-          .from('signals')
-          .select('id')
-          .eq('company_id', company.id)
-          .eq('headline', article.title)
-          .limit(1);
-
-        if (existing && existing.length > 0) continue;
 
         const signalType = classifySignalType(article.title);
         const urgency = getUrgency(signalType);
@@ -219,6 +218,7 @@ export async function POST(request: Request) {
   return NextResponse.json({
     companies_checked: companies.length,
     new_signals_added: totalNewSignals,
+    old_signals_purged: totalPurged,
     articles_discarded: totalDiscarded,
     errors: errors.length > 0 ? errors : undefined,
   });
