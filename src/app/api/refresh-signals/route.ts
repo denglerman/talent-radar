@@ -125,8 +125,10 @@ async function fetchNewsAPISignals(
   if (!newsApiKey) return [];
 
   try {
-    const searchName = company.search_modifier ? `"${company.company_name}" ${company.search_modifier}` : `"${company.company_name}"`;
-    const query = `${searchName} AND (layoff OR acquisition OR restructuring OR "leadership change" OR funding OR reorg)`;
+    // Don't use search_modifier here — searchIn=title already restricts to title matches,
+    // and adding the modifier (e.g. "app") would require it to appear in the title too,
+    // filtering out virtually all legitimate articles. Perigon handles modifier separately.
+    const query = `"${company.company_name}" AND (layoff OR acquisition OR restructuring OR "leadership change" OR funding OR reorg)`;
     const params = new URLSearchParams({
       q: query,
       sortBy: 'publishedAt',
