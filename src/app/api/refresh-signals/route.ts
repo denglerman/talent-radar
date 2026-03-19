@@ -176,6 +176,12 @@ export async function POST(request: Request) {
         const urgency = getUrgency(signalType);
         const whyItMatters = getWhyItMatters(signalType, company.company_name);
 
+        // Filter 3: skip duplicate headlines within this batch (syndicated articles)
+        if (newSignals.some((s) => s.headline === article.title)) {
+          totalDiscarded++;
+          continue;
+        }
+
         newSignals.push({
           company_id: company.id,
           signal_type: signalType,
