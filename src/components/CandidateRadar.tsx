@@ -25,13 +25,6 @@ export default function CandidateRadar({ candidates, selectedId, onSelect }: Pro
   const cy = height - 30;
   const maxR = height - 60;
 
-  // Tier determines distance: tier_1 closest, tier_3 furthest
-  const tierRadius = {
-    tier_1: maxR * 0.3,
-    tier_2: maxR * 0.55,
-    tier_3: maxR * 0.8,
-  };
-
   // Decorative guide rings (one per tier zone)
   const rings = [
     { r: maxR * 0.25 },
@@ -40,6 +33,13 @@ export default function CandidateRadar({ candidates, selectedId, onSelect }: Pro
   ];
 
   const candidatePositions = useMemo(() => {
+    // Tier determines distance: tier_1 closest, tier_3 furthest
+    const tierRadius = {
+      tier_1: maxR * 0.3,
+      tier_2: maxR * 0.55,
+      tier_3: maxR * 0.8,
+    };
+
     // Group by tier and distribute evenly within each tier's arc
     const byTier: Record<string, CandidateWithSignals[]> = { tier_1: [], tier_2: [], tier_3: [] };
     candidates.forEach((c) => {
@@ -67,7 +67,7 @@ export default function CandidateRadar({ candidates, selectedId, onSelect }: Pro
     }
 
     return positions;
-  }, [candidates, cx, cy, tierRadius]);
+  }, [candidates, cx, cy, maxR]);
 
   const hoveredCandidate = candidatePositions.find((c) => c.id === hoveredId);
 
