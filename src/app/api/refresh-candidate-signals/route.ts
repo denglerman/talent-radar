@@ -263,11 +263,16 @@ export async function POST(request: Request) {
 
       // Purge old signals and insert new ones
       if (newSignals.length > 0) {
-        const { data: deleted } = await supabase
+        const { data: deleted, error: deleteError } = await supabase
           .from('candidate_signals')
           .delete()
           .eq('candidate_id', candidate.id)
           .select('id');
+
+        if (deleteError) {
+          errors.push(`Failed to purge signals for ${candidate.name}: ${deleteError.message}`);
+          continue;
+        }
 
         totalPurged += deleted?.length ?? 0;
 

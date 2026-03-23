@@ -338,9 +338,11 @@ export default function CandidateRadar({ candidates, selectedId, onSelect }: Pro
           }}
         >
           <div className="data-mono text-sm font-semibold text-white">{hoveredCandidate.name}</div>
-          <div className="data-mono text-[11px] text-[#64748b] mt-0.5">
-            {hoveredCandidate.current_role} @ {hoveredCandidate.current_company}
-          </div>
+          {hoveredCandidate.current_role || hoveredCandidate.current_company ? (
+            <div className="data-mono text-[11px] text-[#64748b] mt-0.5">
+              {hoveredCandidate.current_role}{hoveredCandidate.current_company ? ` @ ${hoveredCandidate.current_company}` : ''}
+            </div>
+          ) : null}
           <div className="flex gap-3 mt-1.5">
             <span className="data-mono text-xs" style={{ color: hoveredCandidate.heat.fill }}>
               Mobility: {hoveredCandidate.mobility_score}
