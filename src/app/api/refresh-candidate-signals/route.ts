@@ -45,7 +45,7 @@ async function fetchTwitterSignals(handle: string): Promise<TwitterTweet[]> {
 
   try {
     const res = await fetch(
-      `https://api.twitter.com/2/tweets/search/recent?query=from:${handle}&max_results=10&tweet.fields=created_at,text,public_metrics`,
+      `https://api.twitter.com/2/tweets/search/recent?query=from:${encodeURIComponent(handle)}&max_results=10&tweet.fields=created_at,text,public_metrics`,
       {
         headers: {
           Authorization: `Bearer ${bearerToken}`,
@@ -70,7 +70,7 @@ async function fetchGitHubActivity(username: string): Promise<{ events: GitHubEv
   if (!username) return { events: [], isQuiet: false };
 
   try {
-    const res = await fetch(`https://api.github.com/users/${username}/events/public`, {
+    const res = await fetch(`https://api.github.com/users/${encodeURIComponent(username)}/events/public`, {
       headers: {
         'User-Agent': 'CognitionTalentRadar/1.0',
       },
