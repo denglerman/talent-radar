@@ -1,5 +1,5 @@
-import { SEED_COMPANIES, SEED_SIGNALS } from '@/lib/seed-data';
-import { CompanyWithSignals } from '@/types';
+import { SEED_COMPANIES, SEED_SIGNALS, SEED_CANDIDATES, SEED_CANDIDATE_SIGNALS } from '@/lib/seed-data';
+import { CompanyWithSignals, CandidateWithSignals } from '@/types';
 import Dashboard from '@/components/Dashboard';
 
 async function getData(): Promise<{ companiesWithSignals: CompanyWithSignals[]; lastRefresh: string | null }> {
@@ -76,8 +76,64 @@ async function getData(): Promise<{ companiesWithSignals: CompanyWithSignals[]; 
   };
 }
 
-export default async function Home() {
-  const { companiesWithSignals, lastRefresh } = await getData();
+async function getCandidateData(): Promise<CandidateWithSignals[]> {
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  return <Dashboard companiesWithSignals={companiesWithSignals} initialLastRefresh={lastRefresh} />;
+    if (supabaseUrl && supabaseKey) {
+      const candidatesRes = await fetch(`${supabaseUrl}/rest/v1/candidates?select=*&order=mobility_score.desc`, {
+        headers: {
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
+        },
+        next: { revalidate: 60 },
+      });
+
+      if (candidatesRes.ok) {
+        const candidates = await candidatesRes.json();
+        if (candidates && candidates.length > 0) {
+          const signalsRes = await fetch(`${supabaseUrl}/rest/v1/candidate_signals?select=*&order=published_at.desc`, {
+            headers: {
+              apikey: supabaseKey,
+              Authorization: `Bearer ${supabaseKey}`,
+            },
+            next: { revalidate: 60 },
+          });
+
+          const signals = signalsRes.ok ? await signalsRes.json() : [];
+
+          return candidates.map((candidate: CandidateWithSignals) => ({
+            ...candidate,
+            signals: signals.filter((s: { candidate_id: string }) => s.candidate_id === candidate.id),
+          }));
+        }
+      }
+    }
+  } catch {
+    // Fall through to seed data
+  }
+
+  const candidates = [...SEED_CANDIDATES].sort((a, b) => b.mobility_score - a.mobility_score);
+  const signals = [...SEED_CANDIDATE_SIGNALS].sort(
+    (a, b) => new Date(b.published_at || '').getTime() - new Date(a.published_at || '').getTime()
+  );
+
+  return candidates.map((candidate) => ({
+    ...candidate,
+    signals: signals.filter((s) => s.candidate_id === candidate.id),
+  }));
+}
+
+export default async function Home() {
+  const [companyData, candidateData] = await Promise.all([getData(), getCandidateData()]);
+  const { companiesWithSignals, lastRefresh } = companyData;
+
+  return (
+    <Dashboard
+      companiesWithSignals={companiesWithSignals}
+      initialLastRefresh={lastRefresh}
+      initialCandidates={candidateData}
+    />
+  );
 }
