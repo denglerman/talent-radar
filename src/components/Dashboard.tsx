@@ -178,7 +178,7 @@ export default function Dashboard({ companiesWithSignals: initialData, initialLa
           <div className="flex items-center gap-3">
             <div className="w-2 h-2 rounded-full bg-[#00f5ff] animate-pulse" />
             <h1 className="data-mono text-sm font-bold text-white tracking-wider">
-              COGNITION TALENT RADAR
+              TALENT RADAR
             </h1>
           </div>
           <div className="flex items-center gap-4">

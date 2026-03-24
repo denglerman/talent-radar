@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cognition Talent Radar",
+  title: "Talent Radar",
   description: "Company intelligence dashboard for technical recruiting at AI companies",
 };
 
