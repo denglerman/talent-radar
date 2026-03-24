@@ -289,7 +289,7 @@ export default function RadarVisualization({ companies, selectedId, onSelect }: 
         {/* Bottom edge line */}
         <line x1={cx - maxR} y1={cy} x2={cx + maxR} y2={cy} stroke="#1a1a2e" strokeWidth="1" />
 
-        {/* COGNITION label -- outside clipPath so it's visible below the baseline */}
+        {/* TALENT RADAR label -- outside clipPath so it's visible below the baseline */}
         <text
           x={cx}
           y={cy + 20}
@@ -299,7 +299,7 @@ export default function RadarVisualization({ companies, selectedId, onSelect }: 
           fontWeight="bold"
           fontFamily="var(--font-geist-mono), monospace"
         >
-          COGNITION
+          TALENT RADAR
         </text>
       </svg>
 

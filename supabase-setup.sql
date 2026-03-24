@@ -1,4 +1,4 @@
--- Cognition Talent Radar: Database Setup
+-- Talent Radar: Database Setup
 -- Paste this entire script into the Supabase SQL Editor and click "Run"
 
 -- Enable UUID extension
