@@ -1,4 +1,4 @@
-import { Company, Signal } from '@/types';
+import { Company, Signal, Candidate, CandidateSignal } from '@/types';
 
 function uuid(n: number): string {
   return `00000000-0000-0000-0000-${String(n).padStart(12, '0')}`;
@@ -44,4 +44,28 @@ export const SEED_SIGNALS: Signal[] = [
   { id: uuid(118), company_id: uuid(6), signal_type: 'culture', headline: 'Linear maintains lean team philosophy, rejecting hypergrowth pressure', source_url: null, why_it_matters: 'Stable culture and intentional growth make Linear engineers content. Low priority target unless individual circumstances change.', urgency: 'low', detected_at: daysAgo(30) },
   { id: uuid(119), company_id: uuid(10), signal_type: 'funding_round', headline: 'Mistral raises \u20AC600M but faces growing competition from US labs', source_url: null, why_it_matters: 'Competitive pressure and geographic challenges may cause some engineers to consider US-based opportunities with larger compute budgets.', urgency: 'medium', detected_at: daysAgo(13) },
   { id: uuid(120), company_id: uuid(10), signal_type: 'reorg', headline: 'Mistral reorganizes research teams after rapid hiring spree', source_url: null, why_it_matters: 'Post-hiring-spree reorgs are normal growing pains. Monitor but low urgency unless key individuals signal dissatisfaction.', urgency: 'low', detected_at: daysAgo(22) },
+];
+
+export const SEED_CANDIDATES: Candidate[] = [
+  { id: uuid(201), name: 'Sarah Chen', current_company: 'Google DeepMind', current_role: 'Staff Research Engineer', linkedin_url: 'https://linkedin.com/in/sarachen', twitter_handle: 'sarachen_ml', github_username: 'sarachen-dev', tier: 'tier_1', mobility_score: 82, mobility_window: 'open', last_scanned_at: daysAgo(1) },
+  { id: uuid(202), name: 'Marcus Rivera', current_company: 'OpenAI', current_role: 'Senior Software Engineer', linkedin_url: 'https://linkedin.com/in/marcusrivera', twitter_handle: 'mrivera_eng', github_username: 'mrivera42', tier: 'tier_1', mobility_score: 65, mobility_window: 'uncertain', last_scanned_at: daysAgo(2) },
+  { id: uuid(203), name: 'Priya Sharma', current_company: 'Anthropic', current_role: 'ML Platform Lead', linkedin_url: 'https://linkedin.com/in/priyasharma', twitter_handle: 'priya_builds', github_username: 'priyasharma-ml', tier: 'tier_1', mobility_score: 35, mobility_window: 'closed', last_scanned_at: daysAgo(3) },
+  { id: uuid(204), name: 'James Park', current_company: 'Stripe', current_role: 'Engineering Manager', linkedin_url: 'https://linkedin.com/in/jamespark', twitter_handle: 'jpark_tech', github_username: 'jparkdev', tier: 'tier_2', mobility_score: 74, mobility_window: 'open', last_scanned_at: daysAgo(1) },
+  { id: uuid(205), name: 'Elena Volkov', current_company: 'Scale AI', current_role: 'Principal Engineer', linkedin_url: 'https://linkedin.com/in/elenavolkov', twitter_handle: 'evolkov_ai', github_username: 'evolkov', tier: 'tier_2', mobility_score: 48, mobility_window: 'uncertain', last_scanned_at: daysAgo(4) },
+  { id: uuid(206), name: 'David Kim', current_company: 'Notion', current_role: 'Senior Frontend Engineer', linkedin_url: 'https://linkedin.com/in/davidkim', twitter_handle: 'dkim_dev', github_username: 'dkimdev', tier: 'tier_3', mobility_score: 25, mobility_window: 'closed', last_scanned_at: daysAgo(7) },
+];
+
+export const SEED_CANDIDATE_SIGNALS: CandidateSignal[] = [
+  { id: uuid(301), candidate_id: uuid(201), signal_type: 'sentiment_shift', source: 'twitter', headline: 'Expressing frustration with internal tooling direction', detail: 'Multiple tweets criticizing pace of infrastructure changes at DeepMind. Tone shifted negative over past 3 weeks.', urgency: 8, published_at: daysAgo(2) },
+  { id: uuid(302), candidate_id: uuid(201), signal_type: 'job_search_language', source: 'twitter', headline: 'Liked several posts about startup engineering culture', detail: 'Engagement pattern suggests interest in smaller, faster-moving teams.', urgency: 7, published_at: daysAgo(5) },
+  { id: uuid(303), candidate_id: uuid(201), signal_type: 'github_activity', source: 'github', headline: 'New personal project: distributed training framework', detail: 'Started a new open-source repo for distributed ML training, suggesting side exploration outside work scope.', urgency: 5, published_at: daysAgo(3) },
+  { id: uuid(304), candidate_id: uuid(202), signal_type: 'topic_shift', source: 'twitter', headline: 'Tweeting about work-life balance and burnout prevention', detail: 'Shift from purely technical content to lifestyle and well-being topics over past month.', urgency: 6, published_at: daysAgo(4) },
+  { id: uuid(305), candidate_id: uuid(202), signal_type: 'engagement_drop', source: 'twitter', headline: 'Significant decrease in tech community engagement', detail: 'Tweet frequency dropped 60% in past 2 weeks. Previously active daily.', urgency: 7, published_at: daysAgo(1) },
+  { id: uuid(306), candidate_id: uuid(203), signal_type: 'github_activity', source: 'github', headline: 'Active contributor to Anthropic open-source projects', detail: 'Consistent commits to company repos, suggesting high engagement with current role.', urgency: 2, published_at: daysAgo(6) },
+  { id: uuid(307), candidate_id: uuid(204), signal_type: 'sentiment_shift', source: 'twitter', headline: 'Critical of recent company layoff handling', detail: 'Public thread about how Stripe handled latest round of cuts. Expressed disappointment.', urgency: 9, published_at: daysAgo(1) },
+  { id: uuid(308), candidate_id: uuid(204), signal_type: 'job_search_language', source: 'twitter', headline: 'Updated LinkedIn headline to "Open to opportunities"', detail: 'Classic job search signal. Combined with recent sentiment, high mobility indicator.', urgency: 9, published_at: daysAgo(2) },
+  { id: uuid(309), candidate_id: uuid(205), signal_type: 'github_quiet', source: 'github', headline: 'No public GitHub activity in 28 days', detail: 'Previously active contributor went silent. Could indicate internal project focus or disengagement.', urgency: 5, published_at: daysAgo(1) },
+  { id: uuid(310), candidate_id: uuid(205), signal_type: 'topic_shift', source: 'twitter', headline: 'Engaging with AI safety and alignment content', detail: 'New interest area diverging from current data labeling focus at Scale AI.', urgency: 4, published_at: daysAgo(8) },
+  { id: uuid(311), candidate_id: uuid(206), signal_type: 'github_activity', source: 'github', headline: 'Contributing to Notion community plugins actively', detail: 'Strong engagement with employer ecosystem. Low mobility indicator.', urgency: 2, published_at: daysAgo(10) },
+  { id: uuid(312), candidate_id: uuid(206), signal_type: 'sentiment_shift', source: 'twitter', headline: 'Positive about recent Notion product launch', detail: 'Publicly celebrating team achievements. High satisfaction signals.', urgency: 1, published_at: daysAgo(5) },
 ];
