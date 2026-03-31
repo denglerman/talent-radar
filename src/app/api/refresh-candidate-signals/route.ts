@@ -284,6 +284,18 @@ export async function POST(request: Request) {
         });
       }
 
+      // Purge old signals before inserting new ones (prevents unbounded accumulation)
+      if (allSignals.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('candidate_signals')
+          .delete()
+          .eq('candidate_id', candidate.id);
+        if (deleteError) {
+          errors.push(`Failed to purge signals for ${candidate.name}: ${deleteError.message}`);
+          continue;
+        }
+      }
+
       // Insert signals
       for (const signal of allSignals) {
         const { error: insertError } = await supabase.from('candidate_signals').insert(signal);
