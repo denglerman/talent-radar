@@ -362,9 +362,9 @@ export async function POST(request: Request) {
         });
       }
 
-      // Only purge old signals if at least one source returned results
-      // (prevents data loss during transient API outages)
-      if (newsApiArticles.length > 0 || perigonArticles.length > 0) {
+      // Only purge old signals if we actually have new signals to replace them
+      // (prevents data loss when APIs return articles that all get filtered out)
+      if (newSignals.length > 0) {
         const { data: deleted, error: deleteError } = await supabase
           .from('signals')
           .delete()
